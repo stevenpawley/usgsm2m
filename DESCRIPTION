@@ -1,0 +1,35 @@
+Package: USGSm2m
+Type: Package
+Title: R Interface to the USGS/EROS Machine-to-Machine (M2M) Application Programming Interface (API)
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Steven", "Pawley",
+      email = "dr.stevenpawley@gmail.com",
+      role = c("aut", "cre")
+    )
+  )
+Description: The USGS/EROS Machine-to-Machine (M2M) Application Programming 
+  Interface (API) provides a method of searching and acquiring data from the 
+  USGS/EROS data inventories. The M2M API provides the same options and 
+  functions as EarthExplorer (EE) including searching for data collections and
+  imagery, requesting metadata, and accessing all datasets in the EE catalog.
+  Note that this package is not affiliated with the USGS/EROS, but is a 
+  community-developed interface to the M2M API for use in R.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports: 
+    dplyr,
+    glue,
+    httr2,
+    jsonify,
+    magrittr,
+    purrr,
+    rlang,
+    stats,
+    stringr,
+    tidyr
+RoxygenNote: 7.3.2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
