@@ -22,7 +22,6 @@ scenes_df <- ers_scene_search(
 # create a scene list (analogous to the "cart" in the web interface)
 scene_list_id <- as.character(lubridate::now())
 ers_scene_list_add(session, "landsat_ot_c2_l2", scenes_df, scene_list_id)
-
 ers_scene_list_summary(session, scene_list_id)
 
 # get the results of the scene list
@@ -34,6 +33,8 @@ products <- ers_scene_products(session, "landsat_ot_c2_l2", scene_list_id, scene
 # prepare a download request
 order_label <- "batch2020"
 download_queue <- ers_download_request(session, products, label = order_label)
+
+ers_download_search(session)
 
 # download the available products
 dst <- "/Volumes/Samsung SSD/Landsat"

@@ -87,6 +87,32 @@ ers_scene_list_get <- function(session, list_id) {
   return(entity_ids)
 }
 
+
+#' Remove a previously created scene list from the ERS service.
+#'
+#' @param session An object of class "ers_session" returned by the `ers_session`
+#' @param list_id The identifier of the scene list to remove.
+#'
+#' @returns NULL. A message is printed indicating whether the scene list was
+#'  successfully removed or not found.
+#' @export
+ers_scene_list_remove <- function(session, list_id) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("scene-list-remove") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_perform()
+
+  if (resp$status_code == 200) {
+    message(glue::glue("Scene list {list_id} removed"))
+  } else {
+    message("Scene list not found")
+  }
+  return(invisible(NULL))
+}
+
+
 #' Summarize the contents of a scene list.
 #'
 #' This function sends a request to the `scene-list-summary` endpoint to retrieve
@@ -207,4 +233,137 @@ ers_scene_products <- function(session, dataset_name, list_id, entities, band_gr
     message("No products found")
     return(NULL)
   }
+}
+
+
+ers_scene_metadata <- function(session, entity_id) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("scene-metadata") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = list(entityId = entity_id)) %>%
+    httr2::req_perform()
+
+  if (resp$status_code == 200) {
+    metadata <- httr2::resp_body_json(resp)$data
+
+    metadata <- metadata %>%
+      jsonify::to_json() %>%
+      jsonify::from_json()
+
+    metadata <- dplyr::as_tibble(metadata)
+  } else {
+    message("Scene metadata not found")
+    return(NULL)
+  }
+  return(metadata)
+}
+
+ers_scene_metadata_list <- function(session, list_id) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("scene-metadata-list") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_perform()
+
+  if (resp$status_code == 200) {
+    metadata_list <- httr2::resp_body_json(resp)$data
+    metadata_list <- lapply(metadata_list, function(metadata) {
+      df <- metadata %>%
+        jsonify::to_json() %>%
+        jsonify::from_json()
+
+      dplyr::as_tibble(df)
+    })
+    metadata_list <- purrr::list_rbind(metadata_list)
+  } else {
+    message("Scene metadata not found")
+    return(NULL)
+  }
+  return(metadata_list)
+}
+
+#' Return a scene list based on spatial, temporal and cloud-based filters
+#'
+#' @param session An object of class "ers_session" returned by the `ers_login`
+#' @param dataset_name datasetAlias name, for example 'landsat_ot_c2_l2'.
+#' @param spatial_filter A named list that specifies a bounding box, for example:
+#'   list(
+#'     filterType = "mbr",
+#'     lowerLeft = list(latitude = 59, longitude = -120),
+#'     upperRight = list(latitude = 60, longitude = -119)
+#'   )
+#'   See https://m2m.cr.usgs.gov/api/docs/datatypes/#spatialFilter for more
+#'  information on construction of the spatial filter.
+#' @param temporal_filter A named list of start and end times, for example:
+#'  list(start = "2020-06-20", end = "2020-09-22")
+#' See https://m2m.cr.usgs.gov/api/docs/datatypes/#temporalFilter for more
+#' information on the temporal filter.
+#' @param cloud_filter  A named list of cloud cover ranges, for example:
+#'  list(min = 0, max = 30)
+#'
+#' @return tibble of scene entity ids and metadata
+#' @export
+ers_scene_search <- function(
+    session,
+    dataset_name,
+    spatial_filter,
+    temporal_filter,
+    cloud_filter) {
+  search_payload <- list(
+    datasetName = dataset_name,
+    sceneFilter = list(
+      spatialFilter = spatial_filter,
+      acquisitionFilter = temporal_filter,
+      cloudCoverFilter = cloud_filter
+    )
+  )
+
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("scene-search") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = search_payload) %>%
+    httr2::req_perform()
+
+  if (resp$status_code == 200) {
+    scenes <- httr2::resp_body_json(resp)$data
+
+    r <- scenes %>%
+      jsonify::to_json() %>%
+      jsonify::from_json()
+
+    df <- dplyr::as_tibble(r$results)
+
+    # flatten list-columns
+    df_flat <- df |>
+      tidyr::unnest(dplyr::where(is.list), names_sep = "_") |>
+      dplyr::rename_with(~ gsub("^browse_", "", .x))
+
+    # re-nest metadata
+    df_flat$metadata <- lapply(
+      seq_len(nrow(df_flat)),
+      function(i) {
+        dplyr::tibble(
+          id = as.character(df_flat[i, ]$metadata_id),
+          fieldName = as.character(df_flat[i, ]$metadata_fieldName),
+          value = as.character(df_flat[i, ]$metadata_value),
+          dictionaryLink = as.character(df_flat[i, ]$metadata_dictionaryLink),
+        ) |>
+          dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::na_if(.x, "")))
+      }
+    )
+
+    df_flat <- df_flat |>
+      dplyr::select(-dplyr::starts_with("metadata_"))
+
+    # todo
+    # browseRotationEnabled
+    # spatialBounds_coordinates
+    # spatialCoverage_coordinates
+
+  }
+
+  return(df_flat)
 }

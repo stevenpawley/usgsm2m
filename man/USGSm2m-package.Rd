@@ -8,6 +8,14 @@
 \description{
 The USGS/EROS Machine-to-Machine (M2M) Application Programming Interface (API) provides a method of searching and acquiring data from the USGS/EROS data inventories. The M2M API provides the same options and functions as EarthExplorer (EE) including searching for data collections and imagery, requesting metadata, and accessing all datasets in the EE catalog. Note that this package is not affiliated with the USGS/EROS, but is a community-developed interface to the M2M API for use in R.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/stevenpawley/USGSm2m}
+  \item Report bugs at \url{https://github.com/stevenpawley/USGSm2m/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Steven Pawley \email{dr.stevenpawley@gmail.com}
 

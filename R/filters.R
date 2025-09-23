@@ -1,3 +1,51 @@
+daterangeFilter <- function(start, end) {
+  if (!grepl("^\\d{4}-\\d{2}-\\d{2}$", start) || !grepl("^\\d{4}-\\d{2}-\\d{2}$", end)) {
+    stop("Start and end dates must be in 'YYYY-MM-DD' format")
+  }
+  list(start = start, end = end)
+}
+
+#' Create a cloud cover filter for use in scene search
+#'
+#' @param min Minimum cloud cover percentage (0-100)
+#' @param max Maximum cloud cover percentage (0-100)
+#' @return A named list with min and max cloud cover percentages
+#' @export
+filter_cloud <- function(min = 0, max = 100) {
+  list(min = min, max = max)
+}
+
+
+filter_scene <- function(
+    acquisitionFilter = NULL,
+    cloudCoverFilter = NULL,
+    ingestFilter = NULL,
+    metadataFilter = NULL,
+    seasonalFilter = NULL,
+    spatialFilter = NULL
+    ) {
+  # Check that at least one filter is provided
+  if (is.null(acquisitionFilter) && is.null(cloudCoverFilter) &&
+      is.null(ingestFilter) && is.null(metadataFilter) &&
+      is.null(seasonalFilter) && is.null(spatialFilter)) {
+    stop("At least one filter must be provided")
+  }
+
+  # Create the sceneFilter list
+  sceneFilter <- list(
+    acquisitionFilter = acquisitionFilter,
+    cloudCoverFilter = cloudCoverFilter,
+    ingestFilter = ingestFilter,
+    metadataFilter = metadataFilter,
+    seasonalFilter = seasonalFilter,
+    spatialFilter = spatialFilter
+  )
+
+  # drop NULL elements
+  sceneFilter <- sceneFilter[!sapply(sceneFilter, is.null)]
+}
+
+
 #' Create a spatial filter for use in scene search
 #'
 #' @param ll_lon Lower left longitude
@@ -26,15 +74,7 @@ filter_temporal <- function(start, end) {
 }
 
 
-#' Create a cloud cover filter for use in scene search
-#'
-#' @param min Minimum cloud cover percentage (0-100)
-#' @param max Maximum cloud cover percentage (0-100)
-#' @return A named list with min and max cloud cover percentages
-#' @export
-filter_cloud <- function(min = 0, max = 100) {
-  list(min = min, max = max)
-}
+
 
 
 
