@@ -1,3 +1,5 @@
+pkgload::load_all()
+
 session <- ers_session()
 
 # search for datasets

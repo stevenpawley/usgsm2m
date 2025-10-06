@@ -5,6 +5,35 @@ daterangeFilter <- function(start, end) {
   list(start = start, end = end)
 }
 
+
+#' Create a spatial filter for use in scene search
+#'
+#' @param ll_lon Lower left longitude
+#' @param ll_lat Lower left latitude
+#' @param ur_lon Upper right longitude
+#' @param ur_lat Upper right latitude
+#' @return A named list with spatial filter parameters
+#' @export
+filter_spatial <- function(ll_lon, ll_lat, ur_lon, ur_lat) {
+  list(
+    filterType = "mbr",
+    lowerLeft = list(latitude = ll_lat, longitude = ll_lon),
+    upperRight = list(latitude = ur_lat, longitude = ur_lon)
+  )
+}
+
+
+#' Create a temporal filter for use in scene search
+#'
+#' @param start Start date in "YYYY-MM-DD" format
+#' @param end End date in "YYYY-MM-DD" format
+#' @return A named list with start and end dates
+#' @export
+filter_temporal <- function(start, end) {
+  list(start = start, end = end)
+}
+
+
 #' Create a cloud cover filter for use in scene search
 #'
 #' @param min Minimum cloud cover percentage (0-100)
@@ -44,38 +73,6 @@ filter_scene <- function(
   # drop NULL elements
   sceneFilter <- sceneFilter[!sapply(sceneFilter, is.null)]
 }
-
-
-#' Create a spatial filter for use in scene search
-#'
-#' @param ll_lon Lower left longitude
-#' @param ll_lat Lower left latitude
-#' @param ur_lon Upper right longitude
-#' @param ur_lat Upper right latitude
-#' @return A named list with spatial filter parameters
-#' @export
-filter_spatial <- function(ll_lon, ll_lat, ur_lon, ur_lat) {
-  list(
-    filterType = "mbr",
-    lowerLeft = list(latitude = ll_lat, longitude = ll_lon),
-    upperRight = list(latitude = ur_lat, longitude = ur_lon)
-  )
-}
-
-
-#' Create a temporal filter for use in scene search
-#'
-#' @param start Start date in "YYYY-MM-DD" format
-#' @param end End date in "YYYY-MM-DD" format
-#' @return A named list with start and end dates
-#' @export
-filter_temporal <- function(start, end) {
-  list(start = start, end = end)
-}
-
-
-
-
 
 
 #' Filter scene products and particularly the secondaryDownloads
