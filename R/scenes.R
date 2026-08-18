@@ -1,38 +1,19 @@
-#' Send a request to build a scene list within the ERS service for use in other
-#' M2M endpoints such as `download-options`, `order-products`, or another
-#' `scene-search`.
-#'
-#' The scene list is assigned to a temporary identifier based on the dataset
-#' name, and is then sent to the ERS system using the `scene-list-add` endpoint.
-#' This function returns a tibble of scene entity IDs and metadata that can be
-#' used in subsequent requests. The dataset_name and scene list identifier
-#' are stored as attributes of the returned tibble for use in subsequent
-#' requests.
-#'
-#' Typically this function is used after the `scene-search` function to build a
-#' scene list from the search results.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#' @param dataset_name datasetAlias name, for example 'landsat_ot_c2_l2'.
-#' @param scenes Scene list of interest. The scene list is assigned to a
-#'   temporary identifier based on the dataset name, and is then sent to the ERS
-#'   system using the `scene-list-add` endpoint.
-#' @param list_id The identifier of the scene list to create. This can be any
-#'  string, but should be unique within the user's account. It is recommended to
-#'  use a descriptive name that reflects the purpose of the scene list.
-#'
-#' @return tibble
-#' @export
+# Create a server-side scene list (scene-list-add endpoint).
+#
+# The M2M API requires a scene list before download-options / order-products
+# can be called against a set of scenes. Returns the number of scenes the
+# API accepted into the list.
 ers_scene_list_add <- function(session, dataset_name, scenes, list_id) {
-  # prepare the scene list request using the scene entityIds
+  # as.list() keeps entityIds a JSON array even for a single scene: httr2
+  # serializes with auto_unbox = TRUE, which would otherwise turn a length-1
+  # vector into a bare string and make the API return HTTP 500.
   scn_list_add_payload <- list(
     listId = list_id,
     idField = "entityId",
-    entityIds = scenes$entityId,
+    entityIds = as.list(scenes$entityId),
     datasetName = dataset_name
   )
 
-  # get how many scenes are available
   resp <- session$service %>%
     httr2::request() %>%
     httr2::req_url_path_append("scene-list-add") %>%
@@ -41,29 +22,11 @@ ers_scene_list_add <- function(session, dataset_name, scenes, list_id) {
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  count <- m2m_response_data(resp, "Scene list not created")
-
-  if (!is.null(count)) {
-    message(glue::glue("{count} scenes are available"))
-  }
-
-  return(invisible(NULL))
+  m2m_response_data(resp, "Scene list not created")
 }
 
 
-#' Retrieve the list of scenes associated with a previously created scene list.
-#'
-#' This function sends a request to the `scene-list-get` endpoint to retrieve
-#' the scenes associated with a specified scene list identifier. The function
-#' returns a tibble of scene entity IDs and metadata that can be used in
-#' subsequent requests.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_session`
-#' @param list_id The identifier of the scene list to retrieve.
-#'
-#' @returns A tibble of scene entity IDs and metadata associated with the
-#'  specified scene list.
-#' @export
+# Retrieve the scenes in a previously created scene list (scene-list-get).
 ers_scene_list_get <- function(session, list_id) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -75,28 +38,11 @@ ers_scene_list_get <- function(session, list_id) {
 
   entity_ids <- m2m_response_data(resp, "Scene list not found")
 
-  if (is.null(entity_ids)) {
-    return(NULL)
-  }
-
-  entity_ids <- entity_ids %>%
-    jsonify::to_json() %>%
-    jsonify::from_json()
-
-  entity_ids <- dplyr::as_tibble(entity_ids)
-
-  return(entity_ids)
+  m2m_records_to_tibble(entity_ids)
 }
 
 
-#' Remove a previously created scene list from the ERS service.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_session`
-#' @param list_id The identifier of the scene list to remove.
-#'
-#' @returns NULL. A message is printed indicating whether the scene list was
-#'  successfully removed or not found.
-#' @export
+# Delete a scene list from the ERS service (scene-list-remove endpoint).
 ers_scene_list_remove <- function(session, list_id) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -106,27 +52,15 @@ ers_scene_list_remove <- function(session, list_id) {
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (m2m_request_ok(resp, "Scene list not found")) {
-    message(glue::glue("Scene list {list_id} removed"))
-  }
+  m2m_check_response(resp, "Scene list not found")
 
-  return(invisible(NULL))
+  invisible(NULL)
 }
 
 
-#' Summarize the contents of a scene list.
-#'
-#' This function sends a request to the `scene-list-summary` endpoint to retrieve
-#' a summary of the contents of a specified scene list identifier. The function
-#' returns a tibble summarizing the spatial bounds and temporal extent of the
-#' scenes in the list, as well as a summary of the datasets included in the list
-#' and their availability.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_session`
-#' @param list_id The identifier of the scene list to summarize.
-#'
-#' @returns A tibble summarizing the contents of the specified scene list.
-#' @export
+# Summarize a scene list's contents (scene-list-summary endpoint). Returns a
+# per-dataset tibble, with the overall spatial bounds attached as the
+# "spatialBounds" attribute.
 ers_scene_list_summary <- function(session, list_id) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -137,10 +71,6 @@ ers_scene_list_summary <- function(session, list_id) {
     httr2::req_perform()
 
   summary <- m2m_response_data(resp, "Scene list not found")
-
-  if (is.null(summary)) {
-    return(NULL)
-  }
 
   spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
     tidyr::unnest("coordinates")
@@ -166,43 +96,18 @@ ers_scene_list_summary <- function(session, list_id) {
 }
 
 
-#' Identify product IDs that are "available" for each scene. The download
-#' options request is used to discover downloadable products.
-#'
-#' This uses a send request to the `download-options` endpoint that builds
-#' the list of products associated with each scene. This is typically followed
-#' by use of the `download-request` and `download-retrieve` endpoints to prepare
-#' and download the products, respectively.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#' @param dataset_name datasetAlias name, for example 'landsat_ot_c2_l2'.
-#' @param list_id The identifier of the scene list to retrieve.
-#' @param entities A tibble of scene entity IDs and metadata returned by the
-#'  `scene_list_add` function.
-#' @param band_group A flag indicating whether to include secondary file groups.
-#'   If True (the default), secondary file groups will be included in the
-#'   payload.
-#'
-#' @return A list containing all available products in each scene. Each dict
-#'   represents a product and includes various properties, such as the
-#'   'entityId' of the scene that the product belongs to, and
-#'   'secondaryDownloads' which is a list of dicts of associated bands or band
-#'   related metadata.
-#' @export
-ers_scene_products <- function(session, dataset_name, list_id, entities, band_group = TRUE) {
-  # Prepare the payload for the download options request
+# Discover downloadable products for a scene list (download-options endpoint).
+# `secondaryDownloads` (the individual bands) is kept as a list-column.
+ers_scene_products <- function(session, dataset_name, list_id, band_group = TRUE) {
   download_opt_payload <- list(
     listId = list_id,
     datasetName = dataset_name
   )
 
-  # If band_group is specified, include the secondary file groups in the payload
   if (band_group) {
     download_opt_payload$includeSecondaryFileGroups <- TRUE
   }
 
-  # Send request to the download options endpoint and retrieve list of
-  # available products
   resp <- session$service %>%
     httr2::request() %>%
     httr2::req_url_path_append("download-options") %>%
@@ -213,8 +118,8 @@ ers_scene_products <- function(session, dataset_name, list_id, entities, band_gr
 
   product_list <- m2m_response_data(resp, "No products found")
 
-  if (is.null(product_list)) {
-    return(NULL)
+  if (length(product_list) == 0) {
+    return(tibble::tibble())
   }
 
   products <- lapply(product_list, function(product) {
@@ -232,12 +137,11 @@ ers_scene_products <- function(session, dataset_name, list_id, entities, band_gr
     meta
   })
 
-  products <- purrr::list_rbind(products)
-  class(products) <- c("scene_products", class(products))
-  return(products)
+  purrr::list_rbind(products)
 }
 
 
+# Fetch metadata for a single scene (scene-metadata endpoint).
 ers_scene_metadata <- function(session, entity_id) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -249,19 +153,14 @@ ers_scene_metadata <- function(session, entity_id) {
 
   metadata <- m2m_response_data(resp, "Scene metadata not found")
 
-  if (is.null(metadata)) {
-    return(NULL)
-  }
-
-  metadata <- metadata %>%
+  metadata %>%
     jsonify::to_json() %>%
-    jsonify::from_json()
-
-  metadata <- dplyr::as_tibble(metadata)
-
-  return(metadata)
+    jsonify::from_json() %>%
+    dplyr::as_tibble()
 }
 
+
+# Fetch metadata for every scene in a scene list (scene-metadata-list).
 ers_scene_metadata_list <- function(session, list_id) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -273,57 +172,46 @@ ers_scene_metadata_list <- function(session, list_id) {
 
   metadata_list <- m2m_response_data(resp, "Scene metadata not found")
 
-  if (is.null(metadata_list)) {
-    return(NULL)
+  if (length(metadata_list) == 0) {
+    return(tibble::tibble())
   }
 
   metadata_list <- lapply(metadata_list, function(metadata) {
-    df <- metadata %>%
+    metadata %>%
       jsonify::to_json() %>%
-      jsonify::from_json()
-
-    dplyr::as_tibble(df)
+      jsonify::from_json() %>%
+      dplyr::as_tibble()
   })
-  metadata_list <- purrr::list_rbind(metadata_list)
 
-  return(metadata_list)
+  purrr::list_rbind(metadata_list)
 }
 
-#' Return a scene list based on spatial, temporal and cloud-based filters
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#' @param dataset_name datasetAlias name, for example 'landsat_ot_c2_l2'.
-#' @param spatial_filter A named list that specifies a bounding box, for example:
-#'   list(
-#'     filterType = "mbr",
-#'     lowerLeft = list(latitude = 59, longitude = -120),
-#'     upperRight = list(latitude = 60, longitude = -119)
-#'   )
-#'   See https://m2m.cr.usgs.gov/api/docs/datatypes/#spatialFilter for more
-#'  information on construction of the spatial filter.
-#' @param temporal_filter A named list of start and end times, for example:
-#'  list(start = "2020-06-20", end = "2020-09-22")
-#' See https://m2m.cr.usgs.gov/api/docs/datatypes/#temporalFilter for more
-#' information on the temporal filter.
-#' @param cloud_filter  A named list of cloud cover ranges, for example:
-#'  list(min = 0, max = 30)
-#' @param max_results Maximum number of scenes to return. If `NULL` (the
-#'   default), all matching scenes are retrieved by paging through results,
-#'   since the API returns at most a few thousand scenes per request.
-#'
-#' @return tibble of scene entity ids and metadata
-#' @export
+
+# Search a dataset for scenes (scene-search endpoint), paging through all
+# results since the API returns at most a few thousand scenes per request.
+#
+# Returns a list of the results tibble plus the API's reported totalHits, so
+# callers can tell a truncated result set from a complete one.
 ers_scene_search <- function(
     session,
     dataset_name,
-    spatial_filter,
-    temporal_filter,
-    cloud_filter,
+    spatial_filter = NULL,
+    temporal_filter = NULL,
+    cloud_filter = NULL,
+    metadata_filter = NULL,
     max_results = NULL) {
   page_size <- 10000L
   starting_number <- 1L
   all_results <- list()
   total_hits <- Inf
+
+  scene_filter <- list(
+    spatialFilter = spatial_filter,
+    acquisitionFilter = temporal_filter,
+    cloudCoverFilter = cloud_filter,
+    metadataFilter = metadata_filter
+  )
+  scene_filter <- scene_filter[!vapply(scene_filter, is.null, logical(1))]
 
   while (length(all_results) < total_hits) {
     if (!is.null(max_results) && length(all_results) >= max_results) {
@@ -338,11 +226,7 @@ ers_scene_search <- function(
 
     search_payload <- list(
       datasetName = dataset_name,
-      sceneFilter = list(
-        spatialFilter = spatial_filter,
-        acquisitionFilter = temporal_filter,
-        cloudCoverFilter = cloud_filter
-      ),
+      sceneFilter = scene_filter,
       maxResults = requested,
       startingNumber = starting_number
     )
@@ -356,10 +240,6 @@ ers_scene_search <- function(
       httr2::req_perform()
 
     page <- m2m_response_data(resp, "Scene search failed")
-
-    if (is.null(page)) {
-      return(NULL)
-    }
 
     total_hits <- page$totalHits
     all_results <- c(all_results, page$results)
@@ -375,7 +255,7 @@ ers_scene_search <- function(
   }
 
   if (length(all_results) == 0) {
-    return(dplyr::tibble())
+    return(list(results = tibble::tibble(), total_hits = 0L))
   }
 
   r <- list(results = all_results) %>%
@@ -406,10 +286,5 @@ ers_scene_search <- function(
   df_flat <- df_flat |>
     dplyr::select(-dplyr::starts_with("metadata_"))
 
-  # todo
-  # browseRotationEnabled
-  # spatialBounds_coordinates
-  # spatialCoverage_coordinates
-
-  return(df_flat)
+  list(results = df_flat, total_hits = total_hits)
 }

@@ -2,8 +2,8 @@
 "_PACKAGE"
 
 ## usethis namespace: start
-#' @importFrom dplyr filter
-#' @importFrom rlang .data
+#' @importFrom R6 R6Class
+#' @importFrom rlang .data %||%
 #' @importFrom stats setNames
 ## usethis namespace: end
 NULL

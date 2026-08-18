@@ -2,7 +2,7 @@
 % Please edit documentation in R/filters.R
 \name{filter_cloud}
 \alias{filter_cloud}
-\title{Create a cloud cover filter for use in scene search}
+\title{Create a cloud cover filter for use in a scene search}
 \usage{
 filter_cloud(min = 0, max = 100)
 }
@@ -15,5 +15,8 @@ filter_cloud(min = 0, max = 100)
 A named list with min and max cloud cover percentages
 }
 \description{
-Create a cloud cover filter for use in scene search
+Create a cloud cover filter for use in a scene search
+}
+\examples{
+filter_cloud(min = 0, max = 30)
 }

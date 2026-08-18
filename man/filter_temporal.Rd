@@ -2,7 +2,7 @@
 % Please edit documentation in R/filters.R
 \name{filter_temporal}
 \alias{filter_temporal}
-\title{Create a temporal filter for use in scene search}
+\title{Create a temporal filter for use in a scene search}
 \usage{
 filter_temporal(start, end)
 }
@@ -15,5 +15,8 @@ filter_temporal(start, end)
 A named list with start and end dates
 }
 \description{
-Create a temporal filter for use in scene search
+Create a temporal filter for use in a scene search
+}
+\examples{
+filter_temporal("2020-07-01", "2020-07-31")
 }
