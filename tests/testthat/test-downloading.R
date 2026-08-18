@@ -58,3 +58,23 @@ test_that("download request filters products correctly", {
   expect_equal(nrow(filtered), 2)
   expect_true(all(filtered$bulkAvailable))
 })
+
+test_that("ers_download_eula validates input parameters", {
+  session <- mock_session()
+
+  expect_error(ers_download_eula(session), "eula_code or eula_codes")
+  expect_error(
+    ers_download_eula(session, eula_code = "A", eula_codes = c("A", "B")),
+    "only one of"
+  )
+})
+
+test_that("ers_download_eula returns NULL for an invalid EULA code", {
+  skip_on_cran()
+  skip_if_offline("m2m.cr.usgs.gov")
+
+  session <- ers_session()
+  result <- ers_download_eula(session, eula_code = "NOT_A_REAL_CODE")
+
+  expect_null(result)
+})

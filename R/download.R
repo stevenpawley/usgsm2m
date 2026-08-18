@@ -172,6 +172,64 @@ ers_download_retrieve <- function(
   return(results)
 }
 
+#' Retrieve the text of one or more End User License Agreements (EULAs)
+#'
+#' Some datasets (e.g. Sentinel data via EarthExplorer) require the user to
+#' accept a EULA before `ers_download_request()` will succeed for them. This
+#' method retrieves the EULA text so it can be reviewed or displayed to the
+#' user; acceptance itself is completed once through the EarthExplorer
+#' website (https://ers.cr.usgs.gov/) - there is no endpoint in the M2M API
+#' to accept a EULA programmatically.
+#'
+#' @param session An object of class "ers_session" returned by the `ers_login`
+#'   function.
+#' @param eula_code A single EULA code to retrieve. Use this or `eula_codes`,
+#'   not both.
+#' @param eula_codes A character vector of EULA codes to retrieve. Use this
+#'   or `eula_code`, not both.
+#'
+#' @return A tibble with one row per EULA, containing `eulaCode` and
+#'   `agreementContent`.
+#' @export
+ers_download_eula <- function(session, eula_code = NULL, eula_codes = NULL) {
+  if (is.null(eula_code) && is.null(eula_codes)) {
+    stop("eula_code or eula_codes must be supplied")
+  }
+
+  if (!is.null(eula_code) && !is.null(eula_codes)) {
+    stop("Supply only one of eula_code or eula_codes, not both")
+  }
+
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-eula") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(
+      data = list(eulaCode = eula_code, eulaCodes = eula_codes)
+    ) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  eulas <- m2m_response_data(resp, "EULA lookup failed")
+
+  if (is.null(eulas)) {
+    return(NULL)
+  }
+
+  # A single eula_code returns one Eula object; eula_codes returns an array
+  # of them - normalize both into a one-element list before building the
+  # tibble, same as ers_dataset() does for its single-object response.
+  if (!is.null(eula_code)) {
+    eulas <- list(eulas)
+  }
+
+  eulas %>%
+    jsonify::to_json() %>%
+    jsonify::from_json() %>%
+    dplyr::as_tibble()
+}
+
+
 #' Remove items from an existing download order
 #'
 #' @param session An authenticated session object.
