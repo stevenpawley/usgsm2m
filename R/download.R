@@ -116,6 +116,66 @@ ers_download_search <- function(session) {
 }
 
 
+#' Poll the download queue for download URLs, by label
+#'
+#' Wraps the `download-retrieve` endpoint. Call this after
+#' `ers_download_request()` to pick up items that were not immediately
+#' available (they showed up in `newRecords`/`duplicateProducts` rather than
+#' `availableDownloads` because the distribution system needed time to
+#' prepare them): this method returns their download URLs once ready, and
+#' still-pending items separately so you know to poll again later.
+#'
+#' Note this is distinct from `ers_download_retrieve()`, which downloads
+#' files to disk given URLs you already have - this function only queries
+#' the M2M API for the current state of the queue.
+#'
+#' @param session An object of class "ers_session" returned by the `ers_login`
+#'   function.
+#' @param label The label used when the downloads were originally requested.
+#'   If NULL, downloads across all labels are returned.
+#' @param download_application Optional name of the application performing
+#'   the download, to scope results to.
+#'
+#' @return A list with three elements: `available` (a tibble of downloads
+#'   that are ready, including their download URLs), `requested` (a tibble
+#'   of downloads still being prepared), and `queue_size` (the total number
+#'   of items left in the queue).
+#' @export
+ers_download_queue <- function(session, label = NULL, download_application = NULL) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-retrieve") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(
+      data = list(label = label, downloadApplication = download_application)
+    ) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  queue <- m2m_response_data(resp, "Download retrieve failed")
+
+  if (is.null(queue)) {
+    return(NULL)
+  }
+
+  to_tibble <- function(records) {
+    if (length(records) == 0) {
+      return(tibble::tibble())
+    }
+    records %>%
+      jsonify::to_json() %>%
+      jsonify::from_json() %>%
+      dplyr::as_tibble()
+  }
+
+  list(
+    available = to_tibble(queue$available),
+    requested = to_tibble(queue$requested),
+    queue_size = queue$queueSize
+  )
+}
+
+
 #' Download all files in the download queue. Returns all available and
 #' previously requests but not completed downloads.
 #'

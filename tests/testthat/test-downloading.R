@@ -78,3 +78,17 @@ test_that("ers_download_eula returns NULL for an invalid EULA code", {
 
   expect_null(result)
 })
+
+test_that("ers_download_queue returns the queue state for a label", {
+  skip_on_cran()
+  skip_if_offline("m2m.cr.usgs.gov")
+
+  session <- ers_session()
+  result <- ers_download_queue(session, label = "nonexistent-label-xyz")
+
+  expect_type(result, "list")
+  expect_named(result, c("available", "requested", "queue_size"))
+  expect_s3_class(result$available, "tbl_df")
+  expect_s3_class(result$requested, "tbl_df")
+  expect_equal(result$queue_size, 0)
+})
