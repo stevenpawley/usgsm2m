@@ -34,42 +34,49 @@ ers_dataset_search <- function(
     httr2::req_url_path_append("dataset-search") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = datasearch_payload) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (datasearch_result$status_code == 200) {
-    datasets <- httr2::resp_body_json(datasearch_result)$data
+  datasets <- m2m_response_data(datasearch_result, "Dataset search failed")
 
-    df <- datasets %>%
-      jsonify::to_json() %>%
-      jsonify::from_json() %>%
-      dplyr::as_tibble()
+  if (is.null(datasets)) {
+    return(NULL)
+  }
 
-    df <- df |>
-      tidyr::unnest(c(dplyr::where(is.list), -"spatialBounds"))
+  df <- datasets %>%
+    jsonify::to_json() %>%
+    jsonify::from_json() %>%
+    dplyr::as_tibble()
 
-    # coerce spatialBounds to nested tibble
+  unnest_cols <- if ("spatialBounds" %in% names(df)) {
+    rlang::expr(c(dplyr::where(is.list), -"spatialBounds"))
+  } else {
+    rlang::expr(dplyr::where(is.list))
+  }
+  df <- df |>
+    tidyr::unnest(!!unnest_cols)
+
+  # coerce spatialBounds to nested tibble
+  if ("spatialBounds" %in% names(df)) {
     if (inherits(df$spatialBounds, "data.frame")) {
       df$spatialBounds <- apply(df$spatialBounds, 1, function(x) dplyr::as_tibble(t(x)))
     } else {
       df$spatialBounds <- lapply(df$spatialBounds, function(x) dplyr::as_tibble(x))
     }
-
-    # coerce temporalCoverage to nested tibble
-    format_temporal <- function(x) {
-      times <- x %>%
-        stringr::str_remove_all("\\[|]|\"") %>%
-        stringr::str_split(",")
-
-      dplyr::tibble(start = times[[1]][1], end = times[[1]][2])
-    }
-    df$temporalCoverage <- lapply(df$temporalCoverage, format_temporal)
-
-    # coerce catalogs
-    df$catalogs <- apply(df$catalogs, 1, function(x) x)
-
-  } else {
-    message("Dataset not found")
-    return(NULL)
   }
+
+  # coerce temporalCoverage to nested tibble
+  format_temporal <- function(x) {
+    times <- x %>%
+      stringr::str_remove_all("\\[|]|\"") %>%
+      stringr::str_split(",")
+
+    dplyr::tibble(start = times[[1]][1], end = times[[1]][2])
+  }
+  df$temporalCoverage <- lapply(df$temporalCoverage, format_temporal)
+
+  # coerce catalogs
+  df$catalogs <- apply(df$catalogs, 1, function(x) x)
+
   return(df)
 }

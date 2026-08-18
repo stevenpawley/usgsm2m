@@ -55,30 +55,31 @@ ers_download_request <- function(session, products, band_names = NULL, label) {
     httr2::req_body_json(
       data = list(downloads = download_req_payload, label = label)
     ) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    download_queue <- httr2::resp_body_json(resp)$data
-    available_downloads <- lapply(
-      download_queue$availableDownloads,
-      function(x) {
-        dplyr::as_tibble(t(x)) |>
-          tidyr::unnest(dplyr::everything())
-      }
-    )
-    available_downloads <- purrr::list_rbind(available_downloads)
+  download_queue <- m2m_response_data(resp, "Download request failed")
 
-    # todo: handle checksum_values
-
-    if (
-      length(download_queue$newRecords) == 0 &&
-        length(download_queue$duplicateProducts) == 0
-    ) {
-      message("No records returned")
-    }
-  } else {
-    message("Download request failed")
+  if (is.null(download_queue)) {
     return(NULL)
+  }
+
+  available_downloads <- lapply(
+    download_queue$availableDownloads,
+    function(x) {
+      dplyr::as_tibble(t(x)) |>
+        tidyr::unnest(dplyr::everything())
+    }
+  )
+  available_downloads <- purrr::list_rbind(available_downloads)
+
+  # todo: handle checksum_values
+
+  if (
+    length(download_queue$newRecords) == 0 &&
+      length(download_queue$duplicateProducts) == 0
+  ) {
+    message("No records returned")
   }
 
   return(available_downloads)
@@ -97,19 +98,19 @@ ers_download_search <- function(session) {
     httr2::request() %>%
     httr2::req_url_path_append("download-search") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    res <- httr2::resp_body_json(resp)$data
+  res <- m2m_response_data(resp, "No records found")
 
-    df <- res %>%
-      jsonify::to_json() %>%
-      jsonify::from_json() %>%
-      dplyr::as_tibble()
-  } else {
-    message("No records found")
+  if (is.null(res)) {
     return(NULL)
   }
+
+  df <- res %>%
+    jsonify::to_json() %>%
+    jsonify::from_json() %>%
+    dplyr::as_tibble()
 
   return(df)
 }
@@ -146,6 +147,7 @@ ers_download_retrieve <- function(
         httr2::req_url(url) %>%
         httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
         httr2::req_retry(max_tries = 5L, backoff = function(x) 30) %>%
+        httr2::req_error(is_error = function(resp) FALSE) %>%
         httr2::req_perform(path = filename)
 
       if (resp$status_code == 200) {
@@ -183,13 +185,14 @@ ers_download_remove_order <- function(session, label) {
     httr2::req_url_path_append("download-order-remove") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(label = label)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
+  if (m2m_request_ok(resp, "Failed to remove order")) {
     message("Order removed successfully")
-  } else {
-    message("Failed to remove order")
   }
+
+  return(invisible(NULL))
 }
 
 
@@ -201,11 +204,16 @@ ers_download_remove_order <- function(session, label) {
 #' @export
 ers_download_remove_items <- function(session, downloadId) {
   for (id in downloadId) {
-    session$service %>%
+    resp <- session$service %>%
       httr2::request() %>%
       httr2::req_url_path_append("download-remove") %>%
       httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
       httr2::req_body_json(data = list(downloadId = id)) %>%
+      httr2::req_error(is_error = function(resp) FALSE) %>%
       httr2::req_perform()
+
+    m2m_request_ok(resp, paste0("Failed to remove download item ", id))
   }
+
+  return(invisible(NULL))
 }

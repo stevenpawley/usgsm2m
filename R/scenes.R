@@ -38,13 +38,13 @@ ers_scene_list_add <- function(session, dataset_name, scenes, list_id) {
     httr2::req_url_path_append("scene-list-add") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = scn_list_add_payload) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    count <- httr2::resp_body_json(resp)$data
+  count <- m2m_response_data(resp, "Scene list not created")
+
+  if (!is.null(count)) {
     message(glue::glue("{count} scenes are available"))
-  } else {
-    message("Scene list not created")
   }
 
   return(invisible(NULL))
@@ -70,20 +70,21 @@ ers_scene_list_get <- function(session, list_id) {
     httr2::req_url_path_append("scene-list-get") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    entity_ids <- httr2::resp_body_json(resp)$data
+  entity_ids <- m2m_response_data(resp, "Scene list not found")
 
-    entity_ids <- entity_ids %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
-
-    entity_ids <- dplyr::as_tibble(entity_ids)
-  } else {
-    message("Scene list not found")
+  if (is.null(entity_ids)) {
     return(NULL)
   }
+
+  entity_ids <- entity_ids %>%
+    jsonify::to_json() %>%
+    jsonify::from_json()
+
+  entity_ids <- dplyr::as_tibble(entity_ids)
+
   return(entity_ids)
 }
 
@@ -102,13 +103,13 @@ ers_scene_list_remove <- function(session, list_id) {
     httr2::req_url_path_append("scene-list-remove") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
+  if (m2m_request_ok(resp, "Scene list not found")) {
     message(glue::glue("Scene list {list_id} removed"))
-  } else {
-    message("Scene list not found")
   }
+
   return(invisible(NULL))
 }
 
@@ -132,35 +133,34 @@ ers_scene_list_summary <- function(session, list_id) {
     httr2::req_url_path_append("scene-list-summary") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    summary <- httr2::resp_body_json(resp)$data
+  summary <- m2m_response_data(resp, "Scene list not found")
 
-    spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
-      tidyr::unnest("coordinates")
-
-    dataset_summary <- lapply(
-      summary$datasets,
-      function(x) {
-        dplyr::tibble(
-          datasetName = x$datasetName,
-          sceneCount = x$sceneCount,
-          listTimeout = x$listTimeout,
-          invalidScenes = ifelse(length(x$invalidScenes) == 0, NA_character_, list(dplyr::as_tibble(x$invalidScenes))),
-          datasetAvailable = x$datasetAvailable,
-          spatialBounds = list(dplyr::as_tibble(x$spatialBounds)),
-          temporalExtent = list(dplyr::as_tibble(x$temporalExtent))
-        )
-      }
-    )
-    dataset_summary <- purrr::list_rbind(dataset_summary)
-    attr(dataset_summary, "spatialBounds") <- spatial_bounds
-
-  } else {
-    message("Scene list not found")
+  if (is.null(summary)) {
     return(NULL)
   }
+
+  spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
+    tidyr::unnest("coordinates")
+
+  dataset_summary <- lapply(
+    summary$datasets,
+    function(x) {
+      dplyr::tibble(
+        datasetName = x$datasetName,
+        sceneCount = x$sceneCount,
+        listTimeout = x$listTimeout,
+        invalidScenes = ifelse(length(x$invalidScenes) == 0, NA_character_, list(dplyr::as_tibble(x$invalidScenes))),
+        datasetAvailable = x$datasetAvailable,
+        spatialBounds = list(dplyr::as_tibble(x$spatialBounds)),
+        temporalExtent = list(dplyr::as_tibble(x$temporalExtent))
+      )
+    }
+  )
+  dataset_summary <- purrr::list_rbind(dataset_summary)
+  attr(dataset_summary, "spatialBounds") <- spatial_bounds
 
   return(dataset_summary)
 }
@@ -208,33 +208,33 @@ ers_scene_products <- function(session, dataset_name, list_id, entities, band_gr
     httr2::req_url_path_append("download-options") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = download_opt_payload) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    product_list <- httr2::resp_body_json(resp)$data
+  product_list <- m2m_response_data(resp, "No products found")
 
-    products <- lapply(product_list, function(product) {
-      df <- product %>%
-        jsonify::to_json() %>%
-        jsonify::from_json()
-
-      meta <- df[names(df) != "secondaryDownloads"]
-      meta <- meta[!sapply(meta, is.null)]
-      meta <- dplyr::as_tibble(meta)
-
-      if (band_group) {
-        meta$secondaryDownloads <- list(df$secondaryDownloads)
-      }
-      meta
-    })
-
-    products <- purrr::list_rbind(products)
-    class(products) <- c("scene_products", class(products))
-    return(products)
-  } else {
-    message("No products found")
+  if (is.null(product_list)) {
     return(NULL)
   }
+
+  products <- lapply(product_list, function(product) {
+    df <- product %>%
+      jsonify::to_json() %>%
+      jsonify::from_json()
+
+    meta <- df[names(df) != "secondaryDownloads"]
+    meta <- meta[!sapply(meta, is.null)]
+    meta <- dplyr::as_tibble(meta)
+
+    if (band_group) {
+      meta$secondaryDownloads <- list(df$secondaryDownloads)
+    }
+    meta
+  })
+
+  products <- purrr::list_rbind(products)
+  class(products) <- c("scene_products", class(products))
+  return(products)
 }
 
 
@@ -244,20 +244,21 @@ ers_scene_metadata <- function(session, entity_id) {
     httr2::req_url_path_append("scene-metadata") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(entityId = entity_id)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    metadata <- httr2::resp_body_json(resp)$data
+  metadata <- m2m_response_data(resp, "Scene metadata not found")
 
-    metadata <- metadata %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
-
-    metadata <- dplyr::as_tibble(metadata)
-  } else {
-    message("Scene metadata not found")
+  if (is.null(metadata)) {
     return(NULL)
   }
+
+  metadata <- metadata %>%
+    jsonify::to_json() %>%
+    jsonify::from_json()
+
+  metadata <- dplyr::as_tibble(metadata)
+
   return(metadata)
 }
 
@@ -267,22 +268,24 @@ ers_scene_metadata_list <- function(session, list_id) {
     httr2::req_url_path_append("scene-metadata-list") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
     httr2::req_body_json(data = list(listId = list_id)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  if (resp$status_code == 200) {
-    metadata_list <- httr2::resp_body_json(resp)$data
-    metadata_list <- lapply(metadata_list, function(metadata) {
-      df <- metadata %>%
-        jsonify::to_json() %>%
-        jsonify::from_json()
+  metadata_list <- m2m_response_data(resp, "Scene metadata not found")
 
-      dplyr::as_tibble(df)
-    })
-    metadata_list <- purrr::list_rbind(metadata_list)
-  } else {
-    message("Scene metadata not found")
+  if (is.null(metadata_list)) {
     return(NULL)
   }
+
+  metadata_list <- lapply(metadata_list, function(metadata) {
+    df <- metadata %>%
+      jsonify::to_json() %>%
+      jsonify::from_json()
+
+    dplyr::as_tibble(df)
+  })
+  metadata_list <- purrr::list_rbind(metadata_list)
+
   return(metadata_list)
 }
 
@@ -349,14 +352,15 @@ ers_scene_search <- function(
       httr2::req_url_path_append("scene-search") %>%
       httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
       httr2::req_body_json(data = search_payload) %>%
+      httr2::req_error(is_error = function(resp) FALSE) %>%
       httr2::req_perform()
 
-    if (resp$status_code != 200) {
-      message("Scene search failed")
+    page <- m2m_response_data(resp, "Scene search failed")
+
+    if (is.null(page)) {
       return(NULL)
     }
 
-    page <- httr2::resp_body_json(resp)$data
     total_hits <- page$totalHits
     all_results <- c(all_results, page$results)
 
