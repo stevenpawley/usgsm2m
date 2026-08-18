@@ -304,6 +304,9 @@ ers_scene_metadata_list <- function(session, list_id) {
 #' information on the temporal filter.
 #' @param cloud_filter  A named list of cloud cover ranges, for example:
 #'  list(min = 0, max = 30)
+#' @param max_results Maximum number of scenes to return. If `NULL` (the
+#'   default), all matching scenes are retrieved by paging through results,
+#'   since the API returns at most a few thousand scenes per request.
 #'
 #' @return tibble of scene entity ids and metadata
 #' @export
@@ -312,63 +315,97 @@ ers_scene_search <- function(
     dataset_name,
     spatial_filter,
     temporal_filter,
-    cloud_filter) {
-  search_payload <- list(
-    datasetName = dataset_name,
-    sceneFilter = list(
-      spatialFilter = spatial_filter,
-      acquisitionFilter = temporal_filter,
-      cloudCoverFilter = cloud_filter
+    cloud_filter,
+    max_results = NULL) {
+  page_size <- 10000L
+  starting_number <- 1L
+  all_results <- list()
+  total_hits <- Inf
+
+  while (length(all_results) < total_hits) {
+    if (!is.null(max_results) && length(all_results) >= max_results) {
+      break
+    }
+
+    requested <- if (is.null(max_results)) {
+      page_size
+    } else {
+      min(page_size, max_results - length(all_results))
+    }
+
+    search_payload <- list(
+      datasetName = dataset_name,
+      sceneFilter = list(
+        spatialFilter = spatial_filter,
+        acquisitionFilter = temporal_filter,
+        cloudCoverFilter = cloud_filter
+      ),
+      maxResults = requested,
+      startingNumber = starting_number
     )
+
+    resp <- session$service %>%
+      httr2::request() %>%
+      httr2::req_url_path_append("scene-search") %>%
+      httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+      httr2::req_body_json(data = search_payload) %>%
+      httr2::req_perform()
+
+    if (resp$status_code != 200) {
+      message("Scene search failed")
+      return(NULL)
+    }
+
+    page <- httr2::resp_body_json(resp)$data
+    total_hits <- page$totalHits
+    all_results <- c(all_results, page$results)
+
+    if (length(page$results) == 0 || is.null(page$nextRecord)) {
+      break
+    }
+    starting_number <- page$nextRecord
+  }
+
+  if (!is.null(max_results) && length(all_results) > max_results) {
+    all_results <- all_results[seq_len(max_results)]
+  }
+
+  if (length(all_results) == 0) {
+    return(dplyr::tibble())
+  }
+
+  r <- list(results = all_results) %>%
+    jsonify::to_json() %>%
+    jsonify::from_json()
+
+  df <- dplyr::as_tibble(r$results)
+
+  # flatten list-columns
+  df_flat <- df |>
+    tidyr::unnest(dplyr::where(is.list), names_sep = "_") |>
+    dplyr::rename_with(~ gsub("^browse_", "", .x))
+
+  # re-nest metadata
+  df_flat$metadata <- lapply(
+    seq_len(nrow(df_flat)),
+    function(i) {
+      dplyr::tibble(
+        id = as.character(df_flat[i, ]$metadata_id),
+        fieldName = as.character(df_flat[i, ]$metadata_fieldName),
+        value = as.character(df_flat[i, ]$metadata_value),
+        dictionaryLink = as.character(df_flat[i, ]$metadata_dictionaryLink),
+      ) |>
+        dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::na_if(.x, "")))
+    }
   )
 
-  resp <- session$service %>%
-    httr2::request() %>%
-    httr2::req_url_path_append("scene-search") %>%
-    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
-    httr2::req_body_json(data = search_payload) %>%
-    httr2::req_perform()
+  df_flat <- df_flat |>
+    dplyr::select(-dplyr::starts_with("metadata_"))
 
-  if (resp$status_code == 200) {
-    scenes <- httr2::resp_body_json(resp)$data
-
-    r <- scenes %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
-
-    df <- dplyr::as_tibble(r$results)
-
-    # flatten list-columns
-    df_flat <- df |>
-      tidyr::unnest(dplyr::where(is.list), names_sep = "_") |>
-      dplyr::rename_with(~ gsub("^browse_", "", .x))
-
-    # re-nest metadata
-    df_flat$metadata <- lapply(
-      seq_len(nrow(df_flat)),
-      function(i) {
-        dplyr::tibble(
-          id = as.character(df_flat[i, ]$metadata_id),
-          fieldName = as.character(df_flat[i, ]$metadata_fieldName),
-          value = as.character(df_flat[i, ]$metadata_value),
-          dictionaryLink = as.character(df_flat[i, ]$metadata_dictionaryLink),
-        ) |>
-          dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::na_if(.x, "")))
-      }
-    )
-
-    df_flat <- df_flat |>
-      dplyr::select(-dplyr::starts_with("metadata_"))
-
-    # todo
-    # browseRotationEnabled
-    # spatialBounds_coordinates
-    # spatialCoverage_coordinates
-
-  } else {
-    message("Scene search failed")
-    return(NULL)
-  }
+  # todo
+  # browseRotationEnabled
+  # spatialBounds_coordinates
+  # spatialCoverage_coordinates
 
   return(df_flat)
 }
