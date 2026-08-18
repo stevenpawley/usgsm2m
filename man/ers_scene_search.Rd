@@ -9,7 +9,8 @@ ers_scene_search(
   dataset_name,
   spatial_filter,
   temporal_filter,
-  cloud_filter
+  cloud_filter,
+  max_results = NULL
 )
 }
 \arguments{
@@ -33,6 +34,10 @@ information on the temporal filter.}
 
 \item{cloud_filter}{A named list of cloud cover ranges, for example:
 list(min = 0, max = 30)}
+
+\item{max_results}{Maximum number of scenes to return. If `NULL` (the
+default), all matching scenes are retrieved by paging through results,
+since the API returns at most a few thousand scenes per request.}
 }
 \value{
 tibble of scene entity ids and metadata

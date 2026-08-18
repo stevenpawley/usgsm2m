@@ -4,11 +4,13 @@
 \alias{filter.scene_products}
 \title{Filter scene products and particularly the secondaryDownloads}
 \usage{
-\method{filter}{scene_products}(scene_products)
+\method{filter}{scene_products}(.data, ...)
 }
 \arguments{
-\item{scene_products}{A tibble of scene products as returned by
+\item{.data}{A tibble of scene products as returned by
 `ers_scene_products()`}
+
+\item{...}{Additional arguments passed to `dplyr::filter()`.}
 }
 \value{
 A tibble with the secondaryDownloads unnested

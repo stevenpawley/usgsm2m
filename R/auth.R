@@ -67,3 +67,30 @@ ers_session <- function(
   class(session) <- "ers_session"
   return(session)
 }
+
+
+#' Log out of the Earth Explorer M2M interface, invalidating the session's
+#' API key
+#'
+#' M2M sessions also expire automatically after a period of inactivity, but
+#' calling this when finished releases the session immediately rather than
+#' waiting for that timeout.
+#'
+#' @param session An object of class "ers_session" returned by `ers_session`
+#'
+#' @return None. A message indicates whether logout succeeded.
+#' @export
+ers_logout <- function(session) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("logout") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  if (m2m_request_ok(resp, "Logout failed")) {
+    message("Logout was successful")
+  }
+
+  return(invisible(NULL))
+}
