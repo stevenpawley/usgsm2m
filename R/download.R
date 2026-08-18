@@ -19,6 +19,14 @@
 #' @return A list of download URLs for each scene ID - product ID pair
 #' @export
 ers_download_request <- function(session, products, band_names = NULL, label) {
+  if (is.null(products)) {
+    stop("products cannot be NULL")
+  }
+
+  if (is.null(label)) {
+    stop("label is required")
+  }
+
   # subset the products list based on the supplied band_names
   downloads <- products %>%
     dplyr::select("secondaryDownloads") %>%
@@ -127,8 +135,8 @@ ers_download_retrieve <- function(
 ) {
 
   results <- purrr::map2(
-    download_queue$entityId,
-    download_queue$url,
+    download_request_results$entityId,
+    download_request_results$url,
     function(entityId, url) {
       filename <- file.path(out_dir, entityId)
       filename <- gsub("_TIF", ".TIF", filename)
@@ -174,7 +182,7 @@ ers_download_remove_order <- function(session, label) {
     httr2::request() %>%
     httr2::req_url_path_append("download-order-remove") %>%
     httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
-    httr2::req_body_json(data = list(label = "edmonton-data-2020")) %>%
+    httr2::req_body_json(data = list(label = label)) %>%
     httr2::req_perform()
 
   if (resp$status_code == 200) {

@@ -11,21 +11,12 @@ test_that("ers_login returns proper session object structure", {
 })
 
 test_that("ers_login handles missing credentials gracefully", {
-  # Temporarily unset environment variables
-  old_username <- Sys.getenv("M2M_USERNAME")
-  old_token <- Sys.getenv("M2M_TOKEN")
-  
-  Sys.unsetenv("M2M_USERNAME")
-  Sys.unsetenv("M2M_TOKEN")
-  
+  withr::local_envvar(M2M_USERNAME = "", M2M_TOKEN = "")
+
   expect_error(
     ers_session(username = "", token = ""),
-    "Login was unsuccessful"
+    "Username cannot be NULL"
   )
-  
-  # Restore environment variables
-  if (nzchar(old_username)) Sys.setenv(M2M_USERNAME = old_username)
-  if (nzchar(old_token)) Sys.setenv(M2M_TOKEN = old_token)
 })
 
 test_that("ers_login validates input parameters", {

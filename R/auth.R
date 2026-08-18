@@ -46,7 +46,20 @@ ers_session <- function(
   )
 
   if (resp$status_code == 200) {
-    api_key <- httr2::resp_body_json(resp)$data
+    body <- httr2::resp_body_json(resp)
+    api_key <- body$data
+
+    if (is.null(api_key)) {
+      detail <- if (!is.null(body$errorMessage)) {
+        body$errorMessage
+      } else if (!is.null(body$errorCode)) {
+        body$errorCode
+      } else {
+        "unknown error"
+      }
+      stop(paste0("Login was unsuccessful: ", detail))
+    }
+
     message("Login was successful")
   }
 

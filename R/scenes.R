@@ -137,8 +137,8 @@ ers_scene_list_summary <- function(session, list_id) {
   if (resp$status_code == 200) {
     summary <- httr2::resp_body_json(resp)$data
 
-    dplyr::as_tibble(summary$summary$spatialBounds) |>
-      tidyr::unnest(coordinates)
+    spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
+      tidyr::unnest("coordinates")
 
     dataset_summary <- lapply(
       summary$datasets,
@@ -147,7 +147,7 @@ ers_scene_list_summary <- function(session, list_id) {
           datasetName = x$datasetName,
           sceneCount = x$sceneCount,
           listTimeout = x$listTimeout,
-          invalidScenes = ifelse(length(x$invalidScenes) == 0, NA_character_, list(as_tibble(x$invalidScenes))),
+          invalidScenes = ifelse(length(x$invalidScenes) == 0, NA_character_, list(dplyr::as_tibble(x$invalidScenes))),
           datasetAvailable = x$datasetAvailable,
           spatialBounds = list(dplyr::as_tibble(x$spatialBounds)),
           temporalExtent = list(dplyr::as_tibble(x$temporalExtent))
@@ -155,6 +155,7 @@ ers_scene_list_summary <- function(session, list_id) {
       }
     )
     dataset_summary <- purrr::list_rbind(dataset_summary)
+    attr(dataset_summary, "spatialBounds") <- spatial_bounds
 
   } else {
     message("Scene list not found")
@@ -228,6 +229,7 @@ ers_scene_products <- function(session, dataset_name, list_id, entities, band_gr
     })
 
     products <- purrr::list_rbind(products)
+    class(products) <- c("scene_products", class(products))
     return(products)
   } else {
     message("No products found")
@@ -363,6 +365,9 @@ ers_scene_search <- function(
     # spatialBounds_coordinates
     # spatialCoverage_coordinates
 
+  } else {
+    message("Scene search failed")
+    return(NULL)
   }
 
   return(df_flat)

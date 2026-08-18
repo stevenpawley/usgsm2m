@@ -30,6 +30,9 @@ filter_spatial <- function(ll_lon, ll_lat, ur_lon, ur_lat) {
 #' @return A named list with start and end dates
 #' @export
 filter_temporal <- function(start, end) {
+  if (!grepl("^\\d{4}-\\d{2}-\\d{2}$", start) || !grepl("^\\d{4}-\\d{2}-\\d{2}$", end)) {
+    stop("Start and end dates must be in 'YYYY-MM-DD' format")
+  }
   list(start = start, end = end)
 }
 
@@ -41,6 +44,15 @@ filter_temporal <- function(start, end) {
 #' @return A named list with min and max cloud cover percentages
 #' @export
 filter_cloud <- function(min = 0, max = 100) {
+  if (min < 0) {
+    stop("Minimum cloud cover cannot be negative")
+  }
+  if (max > 100) {
+    stop("Maximum cloud cover cannot exceed 100")
+  }
+  if (min > max) {
+    stop("Minimum cannot be greater than maximum")
+  }
   list(min = min, max = max)
 }
 
@@ -77,14 +89,15 @@ filter_scene <- function(
 
 #' Filter scene products and particularly the secondaryDownloads
 #'
-#' @param scene_products A tibble of scene products as returned by
+#' @param .data A tibble of scene products as returned by
 #'   `ers_scene_products()`
+#' @param ... Additional arguments passed to `dplyr::filter()`.
 #'
 #' @returns A tibble with the secondaryDownloads unnested
 #' @export
-filter.scene_products <- function(scene_products) {
-  # todo: create a function to filter scene products and particularly the
-  # secondaryDownloads,
-  unnested <- scene_products |>
-    tidyr::unnest("secondaryDownloads", sep = "_")
+filter.scene_products <- function(.data, ...) {
+  unnested <- .data |>
+    tidyr::unnest("secondaryDownloads", names_sep = "_")
+
+  dplyr::filter(unnested, ...)
 }

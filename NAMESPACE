@@ -2,7 +2,6 @@
 
 S3method(filter,scene_products)
 export("%>%")
-export(aquisitionFilter)
 export(ers_dataset_search)
 export(ers_download_remove_items)
 export(ers_download_remove_order)

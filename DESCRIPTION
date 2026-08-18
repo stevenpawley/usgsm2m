@@ -28,6 +28,7 @@ Imports:
     rlang,
     stats,
     stringr,
+    tibble,
     tidyr
 RoxygenNote: 7.3.3
 Suggests: 
