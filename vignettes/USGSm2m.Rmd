@@ -127,7 +127,7 @@ API matched overall, so comparing it against `nrow(found$scenes)` tells you
 whether you are looking at a complete result set:
 
 ```{r}
-nrow(found$scenes)
+found$scenes
 found$total_hits
 ```
 
@@ -136,6 +136,7 @@ against the `$scenes` tibble. No further API call is made:
 
 ```{r}
 recent <- found$filter(cloudCover < 10)
+recent$scenes
 ```
 
 ### Dataset-specific filters
@@ -288,20 +289,3 @@ sess$eula(code = "EULA_CODE")
 ```
 
 The relevant code appears on queue entries for datasets that need one.
-
-## Error handling
-
-Requests that fail raise errors of class `m2m_error`, with more specific
-subclasses (`m2m_http_error`, `m2m_api_error`, `m2m_not_found`). This means a
-broken step stops the chain at the point of failure rather than returning
-`NULL` and surfacing as something confusing further along:
-
-```{r}
-tryCatch(
-  sess$dataset("not_a_real_dataset"),
-  m2m_not_found = function(e) message("No such dataset")
-)
-```
-
-Expired sessions arrive as `m2m_api_error`, which is worth catching explicitly
-in long-running scripts so you can re-authenticate and carry on.
