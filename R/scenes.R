@@ -130,16 +130,22 @@ ers_scene_products <- function(session, dataset_name, list_id, band_group = TRUE
   }
 
   products <- lapply(product_list, function(product) {
-    df <- product %>%
+    # Normalize secondaryDownloads separately and always to a tibble. Left to
+    # jsonify it comes back as a data.frame when the product has bands and as
+    # an empty list when it has none (browse products, for instance), and a
+    # list-column mixing the two cannot be unnested - which made
+    # download-options fail outright for any dataset carrying both kinds.
+    secondary <- product$secondaryDownloads
+
+    df <- product[names(product) != "secondaryDownloads"] %>%
       jsonify::to_json() %>%
       jsonify::from_json()
 
-    meta <- df[names(df) != "secondaryDownloads"]
-    meta <- meta[!sapply(meta, is.null)]
+    meta <- df[!sapply(df, is.null)]
     meta <- dplyr::as_tibble(meta)
 
     if (band_group) {
-      meta$secondaryDownloads <- list(df$secondaryDownloads)
+      meta$secondaryDownloads <- list(m2m_records_to_tibble(secondary))
     }
     meta
   })

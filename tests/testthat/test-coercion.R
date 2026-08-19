@@ -41,6 +41,23 @@ test_that("scene metadata is also correct when field counts are uniform", {
   expect_false(any(grepl("^c\\(", found$scenes$metadata[[1]]$id)))
 })
 
+test_that("products work when only some products carry secondary downloads", {
+  skip_if_no_m2m()
+
+  # landsat_tm_c2_l1 mixes products that have bands with browse products that
+  # have none. jsonify renders the former as a data.frame and the latter as an
+  # empty list, and a list-column holding both cannot be unnested - this used
+  # to fail outright with "Can't combine <data.frame> and <list>".
+  opts <- test_session()$dataset("landsat_tm_c2_l1")$search(max_results = 3)$products()
+
+  expect_s3_class(opts, "M2MDownloadOptions")
+
+  bands <- opts$bands()
+  expect_s3_class(bands, "tbl_df")
+  expect_gt(nrow(bands), 0)
+  expect_equal(nrow(bands), nrow(dplyr::distinct(bands)))
+})
+
 test_that("scene list summary keeps a stable set of columns", {
   skip_if_no_m2m()
 
