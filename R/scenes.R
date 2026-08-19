@@ -75,15 +75,22 @@ ers_scene_list_summary <- function(session, list_id) {
   spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
     tidyr::unnest("coordinates")
 
+  # Every field is defaulted so the returned tibble always has the same
+  # columns: passing a NULL straight to tibble() drops that column silently
+  # (listTimeout is NULL whenever a list has no expiry), which would make the
+  # result's schema depend on the data. For the same reason invalidScenes
+  # stays a list-column in both cases - ifelse() collapses it to a bare NA
+  # when empty, flipping the column between character and list.
   dataset_summary <- lapply(
     summary$datasets,
     function(x) {
       dplyr::tibble(
-        datasetName = x$datasetName,
-        sceneCount = x$sceneCount,
-        listTimeout = x$listTimeout,
-        invalidScenes = ifelse(length(x$invalidScenes) == 0, NA_character_, list(dplyr::as_tibble(x$invalidScenes))),
-        datasetAvailable = x$datasetAvailable,
+        datasetName = x$datasetName %||% NA_character_,
+        sceneCount = x$sceneCount %||% NA_integer_,
+        invalidSceneCount = x$invalidSceneCount %||% NA_integer_,
+        invalidScenes = list(m2m_records_to_tibble(x$invalidScenes)),
+        listTimeout = x$listTimeout %||% NA_character_,
+        datasetAvailable = x$datasetAvailable %||% NA,
         spatialBounds = list(dplyr::as_tibble(x$spatialBounds)),
         temporalExtent = list(dplyr::as_tibble(x$temporalExtent))
       )
@@ -270,14 +277,30 @@ ers_scene_search <- function(
     dplyr::rename_with(~ gsub("^browse_", "", .x))
 
   # re-nest metadata
+  #
+  # jsonify represents the per-scene metadata array as a scenes-by-fields
+  # matrix when every scene carries the same number of fields, but as a
+  # list-column when the counts differ - which is the common case across a
+  # multi-scene search (Landsat C2 L2 scenes vary between 257 and 258
+  # fields). The two need different indexing, and getting it wrong is silent:
+  # as.character() on a list element deparses it into a single
+  # "c(\"a\", \"b\")" string rather than returning a vector.
+  metadata_values <- function(column, i) {
+    if (is.matrix(column)) {
+      as.character(column[i, ])
+    } else {
+      as.character(column[[i]])
+    }
+  }
+
   df_flat$metadata <- lapply(
     seq_len(nrow(df_flat)),
     function(i) {
       dplyr::tibble(
-        id = as.character(df_flat[i, ]$metadata_id),
-        fieldName = as.character(df_flat[i, ]$metadata_fieldName),
-        value = as.character(df_flat[i, ]$metadata_value),
-        dictionaryLink = as.character(df_flat[i, ]$metadata_dictionaryLink),
+        id = metadata_values(df_flat$metadata_id, i),
+        fieldName = metadata_values(df_flat$metadata_fieldName, i),
+        value = metadata_values(df_flat$metadata_value, i),
+        dictionaryLink = metadata_values(df_flat$metadata_dictionaryLink, i)
       ) |>
         dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::na_if(.x, "")))
     }
