@@ -115,6 +115,17 @@ M2MSession <- R6::R6Class(
       ers_download_search(private$session())
     },
 
+    #' @description List the distinct order labels in the download queue, one
+    #'   row each. Use this to find an order to reconnect to with
+    #'   `$download_queue()` when you no longer remember its label.
+    #' @param download_application Optional application name to scope the
+    #'   listing to.
+    #' @return A tibble with `label`, `downloadCount`, `totalComplete`,
+    #'   `downloadSize` and `dateEntered` (epoch milliseconds).
+    download_labels = function(download_application = NULL) {
+      ers_download_labels(private$session(), download_application)
+    },
+
     #' @description Retrieve the text of one or more End User License
     #'   Agreements. Some datasets require a EULA to be accepted (once,
     #'   through the EarthExplorer website) before downloads will succeed.

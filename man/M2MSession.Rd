@@ -15,6 +15,7 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.
     \item \href{#method-M2MSession-find_datasets}{\code{M2MSession$find_datasets()}}
     \item \href{#method-M2MSession-download_queue}{\code{M2MSession$download_queue()}}
     \item \href{#method-M2MSession-downloads}{\code{M2MSession$downloads()}}
+    \item \href{#method-M2MSession-download_labels}{\code{M2MSession$download_labels()}}
     \item \href{#method-M2MSession-eula}{\code{M2MSession$eula()}}
     \item \href{#method-M2MSession-scene_list}{\code{M2MSession$scene_list()}}
     \item \href{#method-M2MSession-logout}{\code{M2MSession$logout()}}
@@ -133,6 +134,32 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.
   }
   \subsection{Returns}{
     A tibble of queued downloads.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MSession-download_labels"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MSession-download_labels}{}}}
+\subsection{\code{M2MSession$download_labels()}}{
+  List the distinct order labels in the download queue, one
+  row each. Use this to find an order to reconnect to with
+  `$download_queue()` when you no longer remember its label.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MSession$download_labels(download_application = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_application}}{Optional application name to scope the
+listing to.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A tibble with `label`, `downloadCount`, `totalComplete`,
+  `downloadSize` and `dateEntered` (epoch milliseconds).
   }
 }
 

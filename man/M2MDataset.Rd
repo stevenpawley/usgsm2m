@@ -22,6 +22,7 @@ starting point for a scene search. Not created directly.
     \item \href{#method-M2MDataset-id}{\code{M2MDataset$id()}}
     \item \href{#method-M2MDataset-filters}{\code{M2MDataset$filters()}}
     \item \href{#method-M2MDataset-search}{\code{M2MDataset$search()}}
+    \item \href{#method-M2MDataset-related_scenes}{\code{M2MDataset$related_scenes()}}
     \item \href{#method-M2MDataset-print}{\code{M2MDataset$print()}}
     \item \href{#method-M2MDataset-clone}{\code{M2MDataset$clone()}}
   }
@@ -125,6 +126,37 @@ default) all matching scenes are retrieved by paging through results.}
   }
   \subsection{Returns}{
     An [M2MSceneSearch] object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDataset-related_scenes"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDataset-related_scenes}{}}}
+\subsection{\code{M2MDataset$related_scenes()}}{
+  Find the scenes related to a given scene, via the
+  `scene-search-secondary` endpoint.
+
+  Only datasets that define a secondary relationship support this;
+  others raise an `m2m_error` with code `DATASET_ERROR`. The related
+  scenes belong to a different dataset, so the returned search is bound
+  to that dataset rather than this one - meaning `$products()` on the
+  result acts on the correct dataset.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDataset$related_scenes(entity_id, max_results = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{entity_id}}{The `entityId` of the scene to find relatives of.}
+      \item{\code{max_results}}{Maximum number of scenes to return. If `NULL` (the
+default) all are retrieved by paging through results.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An [M2MSceneSearch] over the secondary dataset.
   }
 }
 

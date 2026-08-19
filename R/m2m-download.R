@@ -300,6 +300,41 @@ M2MDownloadQueue <- R6::R6Class(
       )
     },
 
+    #' @description Summarize this order by dataset, via the
+    #'   `download-summary` endpoint.
+    #' @param download_application The application the downloads were
+    #'   requested under. Required by the API; the counts come back as zero
+    #'   if it does not match the one used at request time.
+    #' @param send_email Whether the API should also email the summary.
+    #' @return A list with `label`, `download_count`, `scene_count`,
+    #'   `total_estimated_size` and a `collections` tibble.
+    summary = function(download_application = "M2M", send_email = FALSE) {
+      ers_download_summary(
+        m2m_session_handle(private$session_),
+        label = self$label,
+        download_application = download_application,
+        send_email = send_email
+      )
+    },
+
+    #' @description Move this order's scenes into the queue for processing,
+    #'   via the `download-order-load` endpoint.
+    #'
+    #'   Unlike the other methods here this changes server-side state: it is
+    #'   what starts a staged order being prepared. Follow it with
+    #'   `$refresh()` to pick up URLs as they become ready.
+    #' @param download_application Optional application name to scope the
+    #'   order to.
+    #' @return The queue, invisibly.
+    prepare = function(download_application = NULL) {
+      ers_download_order_load(
+        m2m_session_handle(private$session_),
+        label = self$label,
+        download_application = download_application
+      )
+      invisible(self)
+    },
+
     #' @description Cancel this order, removing it from the M2M queue.
     #' @return The queue, invisibly.
     cancel = function() {

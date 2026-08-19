@@ -312,8 +312,45 @@ queue$refresh()
 queue$retrieve("data/landsat")
 ```
 
-`sess$downloads()` lists everything currently in your queue across all labels,
-and `queue$cancel()` abandons an order you no longer want.
+If you no longer remember the label, `sess$download_labels()` lists your orders
+one row each:
+
+```{r}
+sess$download_labels()
+#> # A tibble: 1 × 5
+#>   label          totalComplete downloadCount downloadSize   dateEntered
+#>   <chr>                  <int>         <int> <chr>                <dbl>
+#> 1 ndvi_july_2020             0             6 549580314    1787113928127
+```
+
+`sess$downloads()` lists every individual download across all labels, and
+`queue$summary()` breaks one order down by dataset. `queue$cancel()` abandons
+an order you no longer want.
+
+Orders whose scenes are staged rather than queued need `queue$prepare()` to
+start them processing — it is the one queue method besides `$cancel()` that
+changes server-side state:
+
+```{r}
+queue$prepare()
+queue$refresh()
+```
+
+## Related scenes
+
+Some datasets define a relationship between scenes — a mosaic and its source
+frames, for instance. `$related_scenes()` follows it:
+
+```{r}
+ds <- sess$dataset("aerial_combin")
+related <- ds$related_scenes("AR1MSH06B001001", max_results = 5)
+related$scenes
+```
+
+Most datasets define no such relationship and raise an `m2m_error` with code
+`DATASET_ERROR`. Because related scenes usually belong to a *different*
+dataset, the returned search is bound to that dataset, so `$products()` on the
+result acts on the right one.
 
 ## End user license agreements
 

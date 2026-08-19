@@ -74,6 +74,44 @@ M2MDataset <- R6::R6Class(
       )
     },
 
+    #' @description Find the scenes related to a given scene, via the
+    #'   `scene-search-secondary` endpoint.
+    #'
+    #'   Only datasets that define a secondary relationship support this;
+    #'   others raise an `m2m_error` with code `DATASET_ERROR`. The related
+    #'   scenes belong to a different dataset, so the returned search is bound
+    #'   to that dataset rather than this one - meaning `$products()` on the
+    #'   result acts on the correct dataset.
+    #' @param entity_id The `entityId` of the scene to find relatives of.
+    #' @param max_results Maximum number of scenes to return. If `NULL` (the
+    #'   default) all are retrieved by paging through results.
+    #' @return An [M2MSceneSearch] over the secondary dataset.
+    related_scenes = function(entity_id, max_results = NULL) {
+      found <- ers_scene_search_secondary(
+        m2m_session_handle(private$session_),
+        entity_id = entity_id,
+        dataset_name = self$alias(),
+        max_results = max_results
+      )
+
+      # Bind the results to the dataset they actually came from; using this
+      # dataset's alias would make any follow-on scene list wrong. Some
+      # datasets are their own secondary, so only look one up when it differs.
+      alias <- found$secondary_dataset_alias
+      secondary <- if (is.na(alias) || identical(alias, self$alias())) {
+        self
+      } else {
+        private$session_$dataset(alias)
+      }
+
+      M2MSceneSearch$new(
+        session = private$session_,
+        dataset = secondary,
+        results = found$results,
+        total_hits = found$total_hits
+      )
+    },
+
     #' @description Print a summary of the dataset.
     #' @param ... Ignored.
     print = function(...) {

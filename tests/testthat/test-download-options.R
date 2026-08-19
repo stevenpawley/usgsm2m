@@ -1,3 +1,20 @@
+# landsat_tm_c2_l1 mixes products that have bands with browse products that
+# have none, which is what these tests need. One search and one
+# download-options call, shared - an unfiltered whole-dataset search is
+# expensive server-side and was timing out when repeated per test.
+tm_options <- local({
+  cached <- NULL
+  function() {
+    if (is.null(cached)) {
+      cached <<- test_session()$
+        dataset("landsat_tm_c2_l1")$
+        search(temporal = filter_temporal("2012-05-01", "2012-05-31"), max_results = 1)$
+        products()
+    }
+    cached
+  }
+})
+
 test_that("flattened bands are de-duplicated across product types", {
   skip_if_no_m2m()
 
@@ -25,7 +42,7 @@ test_that("scene_products exposes whole products that have no bands", {
   # landsat_tm_c2_l1 offers browse imagery and a product bundle alongside the
   # per-band files. The browse products have no secondaryDownloads, so they
   # never appear in $bands() even though they are downloadable.
-  opts <- test_session()$dataset("landsat_tm_c2_l1")$search(max_results = 1)$products()
+  opts <- tm_options()
 
   products <- opts$scene_products()
 
@@ -48,7 +65,7 @@ test_that("scene_products exposes whole products that have no bands", {
 test_that("select_products switches the selection to whole products", {
   skip_if_no_m2m()
 
-  opts <- test_session()$dataset("landsat_tm_c2_l1")$search(max_results = 1)$products()
+  opts <- tm_options()
 
   bundle <- opts$select_products("Product Bundle")$filter(available)
 
@@ -68,7 +85,7 @@ test_that("select_products switches the selection to whole products", {
 test_that("select_bands and select_products each select from their own set", {
   skip_if_no_m2m()
 
-  opts <- test_session()$dataset("landsat_tm_c2_l1")$search(max_results = 1)$products()
+  opts <- tm_options()
 
   # selecting products then bands must not leave the product rows behind
   reselected <- opts$select_products("Browse")$select_bands("B1")

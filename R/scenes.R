@@ -267,8 +267,17 @@ ers_scene_search <- function(
     all_results <- all_results[seq_len(max_results)]
   }
 
+  list(results = coerce_scene_results(all_results), total_hits = total_hits)
+}
+
+
+# Flatten the `results` array of a scene-search style response into a tibble.
+#
+# Shared by ers_scene_search() and ers_scene_search_secondary(), which return
+# identically shaped per-scene records.
+coerce_scene_results <- function(all_results) {
   if (length(all_results) == 0) {
-    return(list(results = tibble::tibble(), total_hits = 0L))
+    return(tibble::tibble())
   }
 
   r <- list(results = all_results) %>%
@@ -312,8 +321,76 @@ ers_scene_search <- function(
     }
   )
 
-  df_flat <- df_flat |>
+  df_flat |>
     dplyr::select(-dplyr::starts_with("metadata_"))
+}
 
-  list(results = df_flat, total_hits = total_hits)
+
+# Find the scenes related to a given scene (scene-search-secondary endpoint).
+#
+# Only datasets that define a secondary relationship support this; the rest
+# answer with a DATASET_ERROR. The related scenes belong to a *different*
+# dataset, whose alias the response reports and which callers need in order to
+# act on the results.
+ers_scene_search_secondary <- function(
+    session,
+    entity_id,
+    dataset_name,
+    max_results = NULL) {
+  page_size <- 10000L
+  starting_number <- 1L
+  all_results <- list()
+  total_hits <- Inf
+  secondary_alias <- NA_character_
+  secondary_id <- NA_character_
+
+  while (length(all_results) < total_hits) {
+    if (!is.null(max_results) && length(all_results) >= max_results) {
+      break
+    }
+
+    requested <- if (is.null(max_results)) {
+      page_size
+    } else {
+      min(page_size, max_results - length(all_results))
+    }
+
+    resp <- session$service %>%
+      httr2::request() %>%
+      httr2::req_url_path_append("scene-search-secondary") %>%
+      httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+      httr2::req_body_json(
+        data = list(
+          entityId = entity_id,
+          datasetName = dataset_name,
+          maxResults = requested,
+          startingNumber = starting_number
+        )
+      ) %>%
+      httr2::req_error(is_error = function(resp) FALSE) %>%
+      httr2::req_perform()
+
+    page <- m2m_response_data(resp, "Secondary scene search failed")
+
+    total_hits <- page$totalHits
+    secondary_alias <- page$secondaryDatasetAlias %||% NA_character_
+    secondary_id <- page$secondaryDatasetId %||% NA_character_
+    all_results <- c(all_results, page$results)
+
+    if (length(page$results) == 0 || is.null(page$nextRecord)) {
+      break
+    }
+    starting_number <- page$nextRecord
+  }
+
+  if (!is.null(max_results) && length(all_results) > max_results) {
+    all_results <- all_results[seq_len(max_results)]
+  }
+
+  list(
+    results = coerce_scene_results(all_results),
+    total_hits = if (is.finite(total_hits)) total_hits else 0L,
+    secondary_dataset_alias = secondary_alias,
+    secondary_dataset_id = secondary_id
+  )
 }

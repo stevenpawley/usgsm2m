@@ -126,6 +126,93 @@ ers_download_files <- function(session, downloads, out_dir) {
 }
 
 
+# List the distinct labels in the user's download queue (download-labels).
+# Each row summarizes one order.
+ers_download_labels <- function(session, download_application = NULL) {
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-labels") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = list(downloadApplication = download_application)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  labels <- m2m_response_data(resp, "Could not list download labels")
+
+  m2m_records_to_tibble(labels)
+}
+
+
+# Summarize an order by dataset (download-summary endpoint).
+#
+# downloadApplication is required by the API - omitting it returns
+# INPUT_PARAMETER_REQUIRED - and must match the application the downloads were
+# requested under for the counts to be populated.
+ers_download_summary <- function(
+    session,
+    label,
+    download_application = "M2M",
+    send_email = FALSE) {
+  if (is.null(label)) {
+    stop("label is required")
+  }
+
+  if (is.null(download_application)) {
+    stop("download_application is required by the download-summary endpoint")
+  }
+
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-summary") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(
+      data = list(
+        downloadApplication = download_application,
+        label = label,
+        sendEmail = send_email
+      )
+    ) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  summary <- m2m_response_data(resp, "Download summary failed")
+
+  list(
+    label = summary$label %||% label,
+    download_count = summary$downloadCount %||% 0L,
+    scene_count = summary$sceneCount %||% 0L,
+    total_estimated_size = summary$totalEstimatedSize %||% 0L,
+    collections = m2m_records_to_tibble(summary$collections)
+  )
+}
+
+
+# Move an order's scenes into the queue for processing (download-order-load).
+#
+# This mutates server-side state rather than reading it: it is what makes a
+# staged order start being prepared for download.
+ers_download_order_load <- function(session, label, download_application = NULL) {
+  if (is.null(label)) {
+    stop("label is required")
+  }
+
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-order-load") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(
+      data = list(label = label, downloadApplication = download_application)
+    ) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  loaded <- m2m_response_data(resp, "Could not load download order")
+
+  # The endpoint answers with a null payload when the label matches nothing.
+  m2m_records_to_tibble(loaded)
+}
+
+
 # Retrieve EULA text by code (download-eula endpoint).
 ers_download_eula <- function(session, eula_code = NULL, eula_codes = NULL) {
   if (is.null(eula_code) && is.null(eula_codes)) {

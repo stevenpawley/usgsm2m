@@ -28,6 +28,8 @@ download and which the distribution system is still preparing.
     \item \href{#method-M2MDownloadQueue-refresh}{\code{M2MDownloadQueue$refresh()}}
     \item \href{#method-M2MDownloadQueue-is_ready}{\code{M2MDownloadQueue$is_ready()}}
     \item \href{#method-M2MDownloadQueue-retrieve}{\code{M2MDownloadQueue$retrieve()}}
+    \item \href{#method-M2MDownloadQueue-summary}{\code{M2MDownloadQueue$summary()}}
+    \item \href{#method-M2MDownloadQueue-prepare}{\code{M2MDownloadQueue$prepare()}}
     \item \href{#method-M2MDownloadQueue-cancel}{\code{M2MDownloadQueue$cancel()}}
     \item \href{#method-M2MDownloadQueue-print}{\code{M2MDownloadQueue$print()}}
     \item \href{#method-M2MDownloadQueue-clone}{\code{M2MDownloadQueue$clone()}}
@@ -112,6 +114,61 @@ download and which the distribution system is still preparing.
   \subsection{Returns}{
     A tibble with one row per file: `entityId`, `url`, `path` and
   `status` (`"downloaded"` or `"failed"`).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-summary"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-summary}{}}}
+\subsection{\code{M2MDownloadQueue$summary()}}{
+  Summarize this order by dataset, via the
+  `download-summary` endpoint.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$summary(download_application = "M2M", send_email = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_application}}{The application the downloads were
+requested under. Required by the API; the counts come back as zero
+if it does not match the one used at request time.}
+      \item{\code{send_email}}{Whether the API should also email the summary.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list with `label`, `download_count`, `scene_count`,
+  `total_estimated_size` and a `collections` tibble.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-prepare"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-prepare}{}}}
+\subsection{\code{M2MDownloadQueue$prepare()}}{
+  Move this order's scenes into the queue for processing,
+  via the `download-order-load` endpoint.
+
+  Unlike the other methods here this changes server-side state: it is
+  what starts a staged order being prepared. Follow it with
+  `$refresh()` to pick up URLs as they become ready.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$prepare(download_application = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_application}}{Optional application name to scope the
+order to.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The queue, invisibly.
   }
 }
 
