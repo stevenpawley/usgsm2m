@@ -1,8 +1,24 @@
 #' Products available for download
 #'
-#' Returned by `M2MSceneSearch$products()`. Holds the downloadable products
-#' (bands and related files) for a set of scenes, and lets you narrow them
-#' down before placing a download request. Not created directly.
+#' Returned by `M2MSceneSearch$products()`. Holds what the M2M API will let
+#' you download for a set of scenes, and lets you narrow it before placing a
+#' request. Not created directly.
+#'
+#' The API offers downloads at two granularities, and this object exposes
+#' both:
+#'
+#' * **Individual files** - the bands and per-file products nested inside a
+#'   product's `secondaryDownloads`, listed by `$bands()`. This is the
+#'   default selection.
+#' * **Whole products** - the scene-level entries the API lists, such as a
+#'   Level-1 Product Bundle (a single `.tar` for the scene) or a
+#'   full-resolution browse image, listed by `$scene_products()`. Some of
+#'   these have no constituent files at all and so never appear in
+#'   `$bands()`.
+#'
+#' Both are requestable. Use `$select_bands()` to queue individual files, or
+#' `$select_products()` to queue whole products; `$selected()` always shows
+#' what `$request()` will actually queue.
 #'
 #' @export
 M2MDownloadOptions <- R6::R6Class(
@@ -27,23 +43,50 @@ M2MDownloadOptions <- R6::R6Class(
       invisible(self)
     },
 
-    #' @description The individual downloadable files currently selected, one
-    #'   row each. This is what `$request()` will queue.
-    #' @return A tibble of downloadable files.
+    #' @description The rows `$request()` will queue. Individual files by
+    #'   default, or whole products after `$select_products()`.
+    #' @return A tibble of downloadable items.
+    selected = function() {
+      private$selected_
+    },
+
+    #' @description The currently selected downloads. An alias for
+    #'   `$selected()`, kept because the selection is individual bands in the
+    #'   common case.
+    #' @return A tibble of downloadable items.
     bands = function() {
       private$selected_
     },
 
-    #' @description Narrow the selection to bands whose `displayId` matches
-    #'   any of the given patterns.
+    #' @description The whole-product entries the API lists for these scenes,
+    #'   one row each, such as a Level-1 Product Bundle or a full-resolution
+    #'   browse image.
     #'
-    #'   Note this does not filter on availability; chain
-    #'   `$filter(bulkAvailable)` if you want only bulk-downloadable files.
+    #'   These are requestable in their own right and are a different unit
+    #'   from `$bands()`: a bundle is a single `.tar` holding the whole scene,
+    #'   where `$bands()` would list its contents as separate files. Products
+    #'   with no constituent files, such as browse imagery, appear only here.
+    #' @return A tibble of products, without the `secondaryDownloads` column.
+    scene_products = function() {
+      if (nrow(self$products) == 0) {
+        return(tibble::tibble())
+      }
+      dplyr::select(self$products, -dplyr::any_of("secondaryDownloads"))
+    },
+
+    #' @description Select the individual files whose `displayId` matches any
+    #'   of the given patterns.
+    #'
+    #'   Like `$select_products()`, this selects afresh from everything
+    #'   available at that granularity rather than narrowing an existing
+    #'   selection - use `$filter()` to narrow. It also does not filter on
+    #'   availability; chain `$filter(bulkAvailable)` if you want only
+    #'   bulk-downloadable files.
     #' @param patterns A character vector of patterns, e.g. `c("B4", "B5")`.
-    #' @return A new [M2MDownloadOptions] with the narrowed selection.
+    #' @return A new [M2MDownloadOptions] with those files selected.
     select_bands = function(patterns) {
       matched <- dplyr::filter(
-        private$selected_,
+        private$flatten_bands(self$products),
         stringr::str_detect(
           .data$displayId,
           stringr::str_c(patterns, collapse = "|")
@@ -52,8 +95,34 @@ M2MDownloadOptions <- R6::R6Class(
       private$respawn(matched)
     },
 
-    #' @description Narrow the selection using `dplyr::filter()` semantics
-    #'   against the band tibble returned by `$bands()`.
+    #' @description Switch the selection to whole products rather than the
+    #'   individual files inside them, optionally keeping only those whose
+    #'   `productName` matches one of the given patterns.
+    #'
+    #'   As with `$select_bands()` this does not filter on availability;
+    #'   chain `$filter(available)` to drop products the API has marked
+    #'   unavailable.
+    #' @param patterns An optional character vector of patterns to match
+    #'   against `productName`, e.g. `"Product Bundle"`.
+    #' @return A new [M2MDownloadOptions] with the products selected.
+    select_products = function(patterns = NULL) {
+      rows <- self$scene_products()
+
+      if (!is.null(patterns) && nrow(rows) > 0) {
+        rows <- dplyr::filter(
+          rows,
+          stringr::str_detect(
+            .data$productName,
+            stringr::str_c(patterns, collapse = "|")
+          )
+        )
+      }
+
+      private$respawn(rows)
+    },
+
+    #' @description Narrow the current selection using `dplyr::filter()`
+    #'   semantics against the tibble returned by `$selected()`.
     #' @param ... Expressions passed to `dplyr::filter()`.
     #' @return A new [M2MDownloadOptions] with the narrowed selection.
     filter = function(...) {
@@ -86,14 +155,21 @@ M2MDownloadOptions <- R6::R6Class(
       )
     },
 
-    #' @description Print a summary of the selected products.
+    #' @description Print a summary of the available and selected downloads.
     #' @param ... Ignored.
     print = function(...) {
+      n_products <- nrow(self$products)
+      n_bands <- nrow(private$flatten_bands(self$products))
+
       cat("<M2MDownloadOptions>\n")
-      cat("  Scenes:  ", format(nrow(self$products), big.mark = ","), "\n", sep = "")
-      cat("  Files:   ", format(nrow(private$selected_), big.mark = ","), " selected\n", sep = "")
+      cat("  Products: ", format(n_products, big.mark = ","),
+          " whole product(s)\n", sep = "")
+      cat("  Files:    ", format(n_bands, big.mark = ","),
+          " individual file(s)\n", sep = "")
+      cat("  Selected: ", format(nrow(private$selected_), big.mark = ","), "\n", sep = "")
+
       if (nrow(private$selected_) > 0) {
-        m2m_print_next("$request(label)", "$select_bands(...)", "$bands()")
+        m2m_print_next("$request(label)", "$select_bands(...)", "$select_products(...)")
       }
       invisible(self)
     }

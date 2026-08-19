@@ -88,6 +88,11 @@ ds$search(metadata = filter_metadata_and(
 server behind the scenes, which the API requires before download options can be
 listed:
 
+Downloads come at two granularities. `$bands()` lists the individual band
+files, while `$scene_products()` lists whole products — a Level-1 Product
+Bundle (one `.tar` per scene) or a full-resolution browse image. Browse
+products have no constituent files and so appear only in the latter.
+
 ```r
 queue <- found$
   products()$
@@ -102,6 +107,19 @@ queue <- found$
 
 queue$retrieve("data/")
 ```
+
+To take whole products instead — one `.tar` per scene rather than many
+separate files — swap the selector:
+
+```r
+queue <- found$
+  products()$
+  select_products("Product Bundle")$
+  filter(available)$
+  request(label = "bundles")
+```
+
+`$selected()` shows exactly what `$request()` will queue, either way.
 
 Files the distribution system cannot serve immediately are prepared in the
 background. When `$is_ready()` is `FALSE`, poll with `$refresh()` — it adds

@@ -213,8 +213,45 @@ selected <- opts$
   select_bands(c("B4", "B5"))$
   filter(bulkAvailable)
 
-nrow(selected$bands())
+nrow(selected$selected())
 ```
+
+### Whole products versus individual files
+
+The API offers downloads at two granularities, and `$bands()` only shows one
+of them. Alongside the individual band files, each scene has whole-product
+entries: a Level-1 Product Bundle, which is a single `.tar` holding the entire
+scene, and full-resolution browse images. `$scene_products()` lists these:
+
+```{r}
+opts$scene_products()
+#> # A tibble: 10 × 12
+#>    productName                                    available id
+#>    <chr>                                          <lgl>     <chr>
+#>  1 Landsat Collection 2 Level-1 Product Bundle    TRUE      5e83d0a0f94d7d8d
+#>  2 Full-Resolution Browse (Natural Color) GeoTIFF TRUE      5e9eb4f5ebb15d46
+#>  3 Full-Resolution Browse (Thermal) GeoTIFF       TRUE      5e9eb5318675b02d
+#>  8 Landsat Collection 2 Level-1 Product Bundle    FALSE     63231219fdd8c4e5
+```
+
+Browse images have no constituent files, so they never appear in `$bands()` at
+all. Use `$select_products()` to queue whole products instead of individual
+files — for one `.tar` per scene rather than 19 separate downloads:
+
+```{r}
+bundles <- opts$
+  select_products("Product Bundle")$
+  filter(available)
+
+bundles$request(label = "bundles_2020")
+```
+
+Note the `available` filter: the API lists superseded products with
+`available = FALSE`, and requesting one will fail. As with `$select_bands()`,
+neither selector filters on availability for you.
+
+`$selected()` always shows exactly what `$request()` will queue, whichever
+granularity you chose.
 
 ## Requesting and retrieving
 
