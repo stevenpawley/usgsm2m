@@ -45,13 +45,26 @@ ers_dataset_search <- function(
 # Shared by ers_dataset_search() (multi-row) and ers_dataset() (single-row),
 # which both return the same per-dataset record shape from the M2M API.
 coerce_dataset_df <- function(df) {
-  unnest_cols <- if ("spatialBounds" %in% names(df)) {
-    rlang::expr(c(dplyr::where(is.list), -"spatialBounds"))
-  } else {
-    rlang::expr(dplyr::where(is.list))
+  # jsonify leaves a null field as a zero-length list element and a
+  # multi-valued field (e.g. catalogs) as a longer one. Unwrap only the
+  # length-1 cases into plain columns and fill nulls with NA: unnesting a
+  # multi-valued field would repeat its dataset across several rows, and
+  # unnesting a null one would drop that dataset's row entirely.
+  list_cols <- names(df)[vapply(
+    df,
+    function(col) is.list(col) && !is.data.frame(col),
+    logical(1)
+  )]
+
+  for (nm in setdiff(list_cols, "spatialBounds")) {
+    col <- df[[nm]]
+    lens <- lengths(col)
+
+    if (all(lens <= 1)) {
+      col[lens == 0] <- NA
+      df[[nm]] <- unlist(col, use.names = FALSE)
+    }
   }
-  df <- df |>
-    tidyr::unnest(!!unnest_cols)
 
   # coerce spatialBounds to nested tibble
   if ("spatialBounds" %in% names(df)) {
@@ -74,8 +87,9 @@ coerce_dataset_df <- function(df) {
     df$temporalCoverage <- lapply(df$temporalCoverage, format_temporal)
   }
 
-  # coerce catalogs
-  if ("catalogs" %in% names(df)) {
+  # catalogs is genuinely multi-valued for some datasets, so it stays a
+  # list-column; normalize the data.frame form jsonify sometimes returns.
+  if ("catalogs" %in% names(df) && is.data.frame(df$catalogs)) {
     df$catalogs <- apply(df$catalogs, 1, function(x) x)
   }
 
@@ -148,16 +162,18 @@ ers_dataset_filters <- function(session, dataset_name) {
     return(tibble::tibble())
   }
 
+  # Keep one row per filter field. Nested members (fieldConfig, and valueList
+  # for Select fields) become list-columns: letting as_tibble() see them as
+  # plain vectors would recycle each field into as many rows as it has
+  # options.
   filter_fields <- lapply(filter_fields, function(field) {
-    df <- field %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
+    field <- field[!vapply(field, is.null, logical(1))]
 
-    meta <- df[names(df) != "fieldConfig"]
-    meta <- meta[!sapply(meta, is.null)]
-    meta <- dplyr::as_tibble(meta)
-    meta$fieldConfig <- list(df$fieldConfig)
-    meta
+    cells <- lapply(field, function(x) {
+      if (length(x) == 1 && !is.list(x)) x else list(x)
+    })
+
+    tibble::as_tibble(cells)
   })
 
   purrr::list_rbind(filter_fields)

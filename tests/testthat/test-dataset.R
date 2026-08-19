@@ -45,6 +45,28 @@ test_that("filters() returns metadata filter fields usable as filterIds", {
   expect_equal(built$filterId, filters$id[[1]])
 })
 
+test_that("filters() returns one row per field, not one per option", {
+  skip_if_no_m2m()
+
+  filters <- test_session()$dataset("landsat_ot_c2_l2")$filters()
+
+  # Select fields carry a valueList of allowed options; it must stay a
+  # list-column rather than recycling its field across several rows.
+  expect_equal(nrow(filters), nrow(dplyr::distinct(filters, id)))
+  expect_true("valueList" %in% names(filters))
+  expect_type(filters$valueList, "list")
+})
+
+test_that("find_datasets returns one row per dataset", {
+  skip_if_no_m2m()
+
+  # landsat_ot_c2_l1 belongs to two catalogs; that must not duplicate its row.
+  found <- test_session()$find_datasets("landsat_ot")
+
+  expect_equal(nrow(found), nrow(dplyr::distinct(found, datasetAlias)))
+  expect_type(found$catalogs, "list")
+})
+
 test_that("an unknown dataset raises a classed error", {
   skip_if_no_m2m()
 
