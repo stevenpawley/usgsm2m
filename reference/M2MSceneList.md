@@ -27,6 +27,11 @@ existing list with \`M2MSession\$scene_list()\`. Not created directly.
   resolves it, since the API does not report a list's dataset except
   through its summary.
 
+- `removed`:
+
+  Whether \`\$remove()\` has deleted this list. Lists also expire on
+  their own, which this does not track.
+
 ## Methods
 
 ### Public methods

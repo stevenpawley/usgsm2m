@@ -103,6 +103,11 @@ Register these scenes as a scene list on the M2M server.
 \`\$products()\` does this for you, so you only need it directly if you
 want the list for its own sake (e.g. bulk metadata).
 
+The registration is reused: calling this again, or calling
+\`\$products()\` more than once, returns the same list rather than
+registering the scenes a second time. Passing an explicit \`list_id\`
+always registers under that id, and does not disturb the reused one.
+
 #### Usage
 
     M2MSceneSearch$scene_list(list_id = NULL)

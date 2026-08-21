@@ -120,16 +120,89 @@ list is usually invisible.</p>
 <div class="section level2">
 <h2 id="scene-lists">Scene lists<a class="anchor" aria-label="anchor" href="#scene-lists"></a>
 </h2>
-<p>A scene list is a named set of scene ids held on the USGS server. It
-exists because <code>download-options</code> and
-<code>scene-metadata-list</code> work in bulk and take a
-<code>listId</code> rather than a list of ids in the request body.</p>
 <div class="section level3">
-<h3 id="creating-one">Creating one<a class="anchor" aria-label="anchor" href="#creating-one"></a>
+<h3 id="what-registering-actually-does">What registering actually does<a class="anchor" aria-label="anchor" href="#what-registering-actually-does"></a>
 </h3>
+<p>A scene list is not something the package holds in memory. It is a
+<strong>named set of scene ids stored on the USGS server</strong>,
+created by posting to <code>scene-list-add</code>:</p>
+<pre><code>{
+  "listId":      "USGSm2m_20260821150915_vbbem6",   &lt;- a name you invent
+  "idField":     "entityId",
+  "entityIds":   ["LC80430322020199LGN00", ...],
+  "datasetName": "landsat_ot_c2_l2"
+}</code></pre>
+<p>You choose the identifier, the server stores the set under it, and
+the call reports how many scenes the list now holds. From then on that
+id stands in for the whole set. It is closer to uploading a temporary
+table than to creating an object locally.</p>
+<p><code>download-options</code> and <code>scene-metadata-list</code>
+will not accept scene ids inline — only a <code>listId</code>. For a
+search returning thousands of scenes that avoids re-sending every id on
+each call, but it means even a single-scene download has to go through
+the same ceremony.</p>
+</div>
+<div class="section level3">
+<h3 id="what-the-package-does-for-you">What the package does for you<a class="anchor" aria-label="anchor" href="#what-the-package-does-for-you"></a>
+</h3>
+<p>Written out by hand, the registration step looks like this: invent a
+unique id, add the scenes under it, then pass the same id <em>and the
+same dataset name</em> to the next call.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">list_id</span> <span class="op">&lt;-</span> <span class="st">"my_unique_id_12345"</span></span>
+<span><span class="fu">ers_scene_list_add</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">scenes</span>, <span class="va">list_id</span><span class="op">)</span></span>
+<span><span class="va">products</span> <span class="op">&lt;-</span> <span class="fu">ers_scene_products</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">list_id</span><span class="op">)</span></span></code></pre></div>
+<p>Three things have to stay consistent there, and each fails in its own
+way: a reused identifier silently appends to an existing set, a
+mismatched <code>datasetName</code> fails obscurely, and the id has to
+be threaded between the calls.</p>
+<p><code>$products()</code> collapses all of that into one line, because
+the search object already knows both the scenes and the dataset:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Internally it is still the same two calls — <code>$products()</code>
+asks <code>$scene_list()</code> to register, then requests download
+options against the resulting id. The identifier is generated (a
+timestamp plus six random characters) so it cannot collide, and the
+dataset name is carried on the object rather than retyped, so it cannot
+disagree.</p>
+</div>
+<div class="section level3">
+<h3 id="one-registration-per-search">One registration per search<a class="anchor" aria-label="anchor" href="#one-registration-per-search"></a>
+</h3>
+<p>Repeated calls reuse the same list rather than registering the scenes
+again:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">found</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">list_id</span>   <span class="co"># all three refer to one registration</span></span></code></pre></div>
+<p>A narrowed search is a different set of scenes, so it gets its
+own:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">found</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">cloudCover</span> <span class="op">&lt;</span> <span class="fl">10</span><span class="op">)</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="op">)</span>   <span class="co"># separate list</span></span></code></pre></div>
+<p>Passing an explicit <code>list_id</code> always registers under that
+name and leaves the reused one alone, and a list you have deleted with
+<code>$remove()</code> is registered afresh next time rather than being
+handed back dead.</p>
+<p>Note that nothing deletes these lists automatically — they persist
+until they expire, or until you call <code>$remove()</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="the-handle">The handle<a class="anchor" aria-label="anchor" href="#the-handle"></a>
+</h3>
+<p><code>M2MSceneList</code> is not the scene list itself — it is a
+<strong>reference to one living on the server</strong>. That is why
+<code>$remove()</code> deletes it remotely, and why the object keeps
+working after the list expires: <code>$scenes()</code> simply returns
+zero rows.</p>
+<p>The class exists for three reasons: it is what
+<code>$products()</code> produces internally, so the step is
+representable rather than buried; it is the only way to reach the
+endpoints that work in bulk; and it lets you reattach to a list
+registered earlier.</p>
 <p><code>$scene_list()</code> registers the scenes from a search and
-returns a handle:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+returns that handle:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">found</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"landsat_ot_c2_l2"</span><span class="op">)</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span></span>
 <span>  temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-07-01"</span>, <span class="st">"2020-07-31"</span><span class="op">)</span>,</span>
 <span>  max_results <span class="op">=</span> <span class="fl">4</span></span>
@@ -184,7 +257,7 @@ id.</p>
 <p>Most of the time you go straight to <code>$products()</code>. The
 list is worth holding when you want the endpoints that only work in
 bulk:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scenes</span><span class="op">$</span><span class="fu">metadata</span><span class="op">(</span><span class="op">)</span>   <span class="co"># every scene's full metadata in one call</span></span>
 <span><span class="va">scenes</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span><span class="op">)</span>    <span class="co"># combined spatial and temporal extent of the set</span></span>
 <span><span class="va">scenes</span><span class="op">$</span><span class="fu">scenes</span><span class="op">(</span><span class="op">)</span>     <span class="co"># the entity ids currently in the list</span></span></code></pre></div>
@@ -193,7 +266,7 @@ metadata scene-by-scene would be one request each.</p>
 <p>If you reattach to a list by id, the package does not initially know
 which dataset it holds — the API only reveals that through the list’s
 summary — so <code>$dataset()</code> resolves it on demand:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">again</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="st">"USGSm2m_20260821150915_vbbem6"</span><span class="op">)</span></span>
 <span><span class="va">again</span></span>
 <span><span class="co">#&gt;   Dataset: &lt;unresolved&gt;</span></span>
@@ -222,7 +295,7 @@ and nineteen individual files. Browse images have no constituent files,
 so they appear only in <code>$scene_products()</code>.</p>
 <p>Pick a granularity with the matching selector, then narrow with
 <code>$filter()</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">opts</span> <span class="op">&lt;-</span> <span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">opts</span><span class="op">$</span><span class="fu">select_bands</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4"</span>, <span class="st">"B5"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">bulkAvailable</span><span class="op">)</span>   <span class="co"># 6 separate .TIFs</span></span>
@@ -247,7 +320,7 @@ immediately:</p>
 <p><code>$is_ready()</code> tells you which situation you are in.
 <code>$refresh()</code> re-polls and adds newly ready files to
 <code>$available</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">queue</span> <span class="op">&lt;-</span> <span class="va">opts</span><span class="op">$</span><span class="fu">select_bands</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4"</span>, <span class="st">"B5"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="fu">request</span><span class="op">(</span>label <span class="op">=</span> <span class="st">"ndvi_july_2020"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -269,7 +342,7 @@ server-side state.</p>
 </h2>
 <p>Orders outlive both your R session and the scene list that produced
 them, so a large download does not have to finish in one sitting:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sess</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/m2m_session.html">m2m_session</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sess</span><span class="op">$</span><span class="fu">download_labels</span><span class="op">(</span><span class="op">)</span>      <span class="co"># which orders exist</span></span>

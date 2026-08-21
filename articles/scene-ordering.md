@@ -49,13 +49,102 @@ usually invisible.
 
 ## Scene lists
 
-A scene list is a named set of scene ids held on the USGS server. It
-exists because `download-options` and `scene-metadata-list` work in bulk
-and take a `listId` rather than a list of ids in the request body.
+### What registering actually does
 
-### Creating one
+A scene list is not something the package holds in memory. It is a
+**named set of scene ids stored on the USGS server**, created by posting
+to `scene-list-add`:
 
-`$scene_list()` registers the scenes from a search and returns a handle:
+    {
+      "listId":      "USGSm2m_20260821150915_vbbem6",   <- a name you invent
+      "idField":     "entityId",
+      "entityIds":   ["LC80430322020199LGN00", ...],
+      "datasetName": "landsat_ot_c2_l2"
+    }
+
+You choose the identifier, the server stores the set under it, and the
+call reports how many scenes the list now holds. From then on that id
+stands in for the whole set. It is closer to uploading a temporary table
+than to creating an object locally.
+
+`download-options` and `scene-metadata-list` will not accept scene ids
+inline — only a `listId`. For a search returning thousands of scenes
+that avoids re-sending every id on each call, but it means even a
+single-scene download has to go through the same ceremony.
+
+### What the package does for you
+
+Written out by hand, the registration step looks like this: invent a
+unique id, add the scenes under it, then pass the same id *and the same
+dataset name* to the next call.
+
+``` r
+
+list_id <- "my_unique_id_12345"
+ers_scene_list_add(session, "landsat_ot_c2_l2", scenes, list_id)
+products <- ers_scene_products(session, "landsat_ot_c2_l2", list_id)
+```
+
+Three things have to stay consistent there, and each fails in its own
+way: a reused identifier silently appends to an existing set, a
+mismatched `datasetName` fails obscurely, and the id has to be threaded
+between the calls.
+
+`$products()` collapses all of that into one line, because the search
+object already knows both the scenes and the dataset:
+
+``` r
+
+found$products()
+```
+
+Internally it is still the same two calls — `$products()` asks
+`$scene_list()` to register, then requests download options against the
+resulting id. The identifier is generated (a timestamp plus six random
+characters) so it cannot collide, and the dataset name is carried on the
+object rather than retyped, so it cannot disagree.
+
+### One registration per search
+
+Repeated calls reuse the same list rather than registering the scenes
+again:
+
+``` r
+
+found$products()
+found$products()
+found$scene_list()$list_id   # all three refer to one registration
+```
+
+A narrowed search is a different set of scenes, so it gets its own:
+
+``` r
+
+found$filter(cloudCover < 10)$scene_list()   # separate list
+```
+
+Passing an explicit `list_id` always registers under that name and
+leaves the reused one alone, and a list you have deleted with
+`$remove()` is registered afresh next time rather than being handed back
+dead.
+
+Note that nothing deletes these lists automatically — they persist until
+they expire, or until you call `$remove()`.
+
+### The handle
+
+`M2MSceneList` is not the scene list itself — it is a **reference to one
+living on the server**. That is why `$remove()` deletes it remotely, and
+why the object keeps working after the list expires: `$scenes()` simply
+returns zero rows.
+
+The class exists for three reasons: it is what `$products()` produces
+internally, so the step is representable rather than buried; it is the
+only way to reach the endpoints that work in bulk; and it lets you
+reattach to a list registered earlier.
+
+`$scene_list()` registers the scenes from a search and returns that
+handle:
 
 ``` r
 
