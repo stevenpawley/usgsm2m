@@ -72,8 +72,30 @@ ers_scene_list_summary <- function(session, list_id) {
 
   summary <- m2m_response_data(resp, "Scene list not found")
 
-  spatial_bounds <- dplyr::as_tibble(summary$summary$spatialBounds) |>
-    tidyr::unnest("coordinates")
+  # An unknown or expired list still answers HTTP 200, but with no datasets
+  # and a null spatialBounds - unnesting that raises a confusing "Column
+  # `coordinates` doesn't exist" from dplyr rather than saying what is wrong.
+  bounds <- summary$summary$spatialBounds
+  spatial_bounds <- if (is.null(bounds) || length(bounds) == 0) {
+    tibble::tibble()
+  } else {
+    dplyr::as_tibble(bounds) |> tidyr::unnest("coordinates")
+  }
+
+  if (length(summary$datasets) == 0) {
+    empty <- dplyr::tibble(
+      datasetName = character(),
+      sceneCount = integer(),
+      invalidSceneCount = integer(),
+      invalidScenes = list(),
+      listTimeout = character(),
+      datasetAvailable = logical(),
+      spatialBounds = list(),
+      temporalExtent = list()
+    )
+    attr(empty, "spatialBounds") <- spatial_bounds
+    return(empty)
+  }
 
   # Every field is defaulted so the returned tibble always has the same
   # columns: passing a NULL straight to tibble() drops that column silently

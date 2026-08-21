@@ -138,9 +138,17 @@ M2MSession <- R6::R6Class(
 
     #' @description Attach to a scene list that already exists server-side.
     #' @param list_id The scene list identifier.
+    #' @param dataset_name The dataset alias the list belongs to. Optional -
+    #'   it is looked up from the list's summary when needed. Supply it to
+    #'   save that lookup, or to pick one when the list spans several
+    #'   datasets.
     #' @return An [M2MSceneList] object.
-    scene_list = function(list_id) {
-      M2MSceneList$new(session = self, list_id = list_id, dataset_name = NA_character_)
+    scene_list = function(list_id, dataset_name = NULL) {
+      M2MSceneList$new(
+        session = self,
+        list_id = list_id,
+        dataset_name = dataset_name %||% NA_character_
+      )
     },
 
     #' @description End the session, invalidating its API key. M2M sessions

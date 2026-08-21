@@ -195,13 +195,17 @@ listing to.}
   Attach to a scene list that already exists server-side.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{M2MSession$scene_list(list_id)}
+    \preformatted{M2MSession$scene_list(list_id, dataset_name = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{list_id}}{The scene list identifier.}
+      \item{\code{dataset_name}}{The dataset alias the list belongs to. Optional -
+it is looked up from the list's summary when needed. Supply it to
+save that lookup, or to pick one when the list spans several
+datasets.}
     }
     \if{html}{\out{</div>}}
   }

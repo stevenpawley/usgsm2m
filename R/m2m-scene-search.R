@@ -109,8 +109,17 @@ M2MSceneSearch <- R6::R6Class(
 #' A scene list registered on the M2M server
 #'
 #' Scene lists are the M2M API's way of naming a set of scenes so that other
-#' endpoints can act on them in bulk. Usually created implicitly by
-#' `M2MSceneSearch$products()`. Not created directly.
+#' endpoints can act on them in bulk: `download-options` and
+#' `scene-metadata-list` will not take scene ids inline, only a `listId`.
+#'
+#' `M2MSceneSearch$products()` creates and uses one for you, so the usual
+#' pipeline never mentions scene lists. Reach for this class when the list
+#' itself is what you want - `$metadata()` fetches metadata for every scene in
+#' one call rather than one call per scene, and `$summary()` reports the set's
+#' combined extent.
+#'
+#' Get one with `M2MSceneSearch$scene_list()`, or reattach to an existing
+#' list with `M2MSession$scene_list()`. Not created directly.
 #'
 #' @export
 M2MSceneList <- R6::R6Class(
@@ -119,19 +128,56 @@ M2MSceneList <- R6::R6Class(
     #' @field list_id The scene list's identifier.
     list_id = NULL,
 
-    #' @field dataset_name The dataset alias the list belongs to.
+    #' @field dataset_name The dataset alias the list belongs to, or `NA` if
+    #'   not yet known. Reattaching to a list by id leaves this `NA` until
+    #'   `$dataset()` resolves it, since the API does not report a list's
+    #'   dataset except through its summary.
     dataset_name = NULL,
 
     #' @description Attach to a scene list. Use `M2MSceneSearch$scene_list()`
     #'   or `M2MSession$scene_list()` instead.
     #' @param session The parent [M2MSession].
     #' @param list_id The scene list identifier.
-    #' @param dataset_name The dataset alias the list belongs to.
-    initialize = function(session, list_id, dataset_name) {
+    #' @param dataset_name The dataset alias the list belongs to, or `NA` if
+    #'   unknown.
+    initialize = function(session, list_id, dataset_name = NA_character_) {
       private$session_ <- session
       self$list_id <- list_id
-      self$dataset_name <- dataset_name
+      self$dataset_name <- dataset_name %||% NA_character_
       invisible(self)
+    },
+
+    #' @description The dataset alias this list belongs to, looked up from the
+    #'   list's summary if it is not already known and cached thereafter.
+    #'
+    #'   A scene list can span several datasets, in which case there is no
+    #'   single answer and this errors - pass `dataset_name` to
+    #'   `M2MSession$scene_list()` to say which one you mean.
+    #' @return The dataset alias, as a string.
+    dataset = function() {
+      if (!is.na(self$dataset_name)) {
+        return(self$dataset_name)
+      }
+
+      found <- unique(stats::na.omit(self$summary()$datasetName))
+
+      if (length(found) == 0) {
+        stop(
+          "Scene list '", self$list_id,
+          "' reports no dataset; it may have expired or be empty"
+        )
+      }
+
+      if (length(found) > 1) {
+        stop(
+          "Scene list '", self$list_id, "' spans several datasets (",
+          paste(found, collapse = ", "),
+          "). Say which one with sess$scene_list(list_id, dataset_name = )"
+        )
+      }
+
+      self$dataset_name <- found[[1]]
+      self$dataset_name
     },
 
     #' @description The entity ids currently in the list.
@@ -160,7 +206,10 @@ M2MSceneList <- R6::R6Class(
     products = function(band_group = TRUE) {
       products <- ers_scene_products(
         m2m_session_handle(private$session_),
-        dataset_name = self$dataset_name,
+        # resolve rather than trusting the field: a list reattached by id
+        # starts out not knowing its dataset, and sending NA would make
+        # download-options fail obscurely
+        dataset_name = self$dataset(),
         list_id = self$list_id,
         band_group = band_group
       )
@@ -185,7 +234,12 @@ M2MSceneList <- R6::R6Class(
     print = function(...) {
       cat("<M2MSceneList>\n")
       cat("  List id: ", self$list_id, "\n", sep = "")
-      cat("  Dataset: ", self$dataset_name, "\n", sep = "")
+      cat(
+        "  Dataset: ",
+        if (is.na(self$dataset_name)) "<unresolved>" else self$dataset_name,
+        "\n",
+        sep = ""
+      )
       m2m_print_next("$products()", "$metadata()", "$summary()")
       invisible(self)
     }

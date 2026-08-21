@@ -86,6 +86,10 @@ The `filter()` S3 method for `scene_products` objects has been removed;
   again without remembering its label.
 * `M2MDownloadQueue$summary()` breaks an order down by dataset, and
   `$prepare()` moves a staged order into the queue for processing.
+* `M2MSceneList$dataset()` reports which dataset a scene list holds, looking
+  it up from the list's summary when reattaching to a list by id and caching
+  the answer. `M2MSession$scene_list()` also takes an optional `dataset_name`
+  to skip that lookup, or to choose one when a list spans several datasets.
 * A usage vignette, `vignette("USGSm2m")`.
 
 ## Errors
@@ -127,7 +131,9 @@ failing, so results obtained with 0.1.0 are worth re-checking:
   instead of an array. The same fault is fixed for `eulaCodes`.
 * `scene-list-summary` returned a column set that varied with the data —
   `listTimeout` vanished when null, `invalidSceneCount` was never returned,
-  and `invalidScenes` changed type depending on whether any existed.
+  and `invalidScenes` changed type depending on whether any existed. An
+  unknown or expired list also raised a confusing "Column `coordinates`
+  doesn't exist" from dplyr, rather than summarizing as empty.
 
 # USGSm2m 0.1.0
 

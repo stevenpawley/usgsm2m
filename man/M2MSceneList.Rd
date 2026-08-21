@@ -5,15 +5,27 @@
 \title{A scene list registered on the M2M server}
 \description{
 Scene lists are the M2M API's way of naming a set of scenes so that other
-endpoints can act on them in bulk. Usually created implicitly by
-`M2MSceneSearch$products()`. Not created directly.
+endpoints can act on them in bulk: `download-options` and
+`scene-metadata-list` will not take scene ids inline, only a `listId`.
+
+`M2MSceneSearch$products()` creates and uses one for you, so the usual
+pipeline never mentions scene lists. Reach for this class when the list
+itself is what you want - `$metadata()` fetches metadata for every scene in
+one call rather than one call per scene, and `$summary()` reports the set's
+combined extent.
+
+Get one with `M2MSceneSearch$scene_list()`, or reattach to an existing
+list with `M2MSession$scene_list()`. Not created directly.
 }
 \section{Public fields}{
   \if{html}{\out{<div class="r6-fields">}}
   \describe{
     \item{\code{list_id}}{The scene list's identifier.}
 
-    \item{\code{dataset_name}}{The dataset alias the list belongs to.}
+    \item{\code{dataset_name}}{The dataset alias the list belongs to, or `NA` if
+not yet known. Reattaching to a list by id leaves this `NA` until
+`$dataset()` resolves it, since the API does not report a list's
+dataset except through its summary.}
   }
   \if{html}{\out{</div>}}
 }
@@ -21,6 +33,7 @@ endpoints can act on them in bulk. Usually created implicitly by
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-M2MSceneList-initialize}{\code{M2MSceneList$new()}}
+    \item \href{#method-M2MSceneList-dataset}{\code{M2MSceneList$dataset()}}
     \item \href{#method-M2MSceneList-scenes}{\code{M2MSceneList$scenes()}}
     \item \href{#method-M2MSceneList-metadata}{\code{M2MSceneList$metadata()}}
     \item \href{#method-M2MSceneList-summary}{\code{M2MSceneList$summary()}}
@@ -38,7 +51,7 @@ endpoints can act on them in bulk. Usually created implicitly by
   or `M2MSession$scene_list()` instead.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{M2MSceneList$new(session, list_id, dataset_name)}
+    \preformatted{M2MSceneList$new(session, list_id, dataset_name = NA_character_)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -46,9 +59,30 @@ endpoints can act on them in bulk. Usually created implicitly by
     \describe{
       \item{\code{session}}{The parent [M2MSession].}
       \item{\code{list_id}}{The scene list identifier.}
-      \item{\code{dataset_name}}{The dataset alias the list belongs to.}
+      \item{\code{dataset_name}}{The dataset alias the list belongs to, or `NA` if
+unknown.}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MSceneList-dataset"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MSceneList-dataset}{}}}
+\subsection{\code{M2MSceneList$dataset()}}{
+  The dataset alias this list belongs to, looked up from the
+  list's summary if it is not already known and cached thereafter.
+
+  A scene list can span several datasets, in which case there is no
+  single answer and this errors - pass `dataset_name` to
+  `M2MSession$scene_list()` to say which one you mean.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MSceneList$dataset()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The dataset alias, as a string.
   }
 }
 
