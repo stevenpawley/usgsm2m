@@ -23,29 +23,52 @@ have to be established before the API will hand over a file:
 4.  **A prepared download** — the distribution system may have to stage
     a product before there is a URL to fetch.
 
-Each step has its own endpoint, and each depends on the one before:
+Each step has its own endpoint, and each produces exactly the one thing
+the next step needs:
 
-       scene-search          which scenes exist
-            │
-            ▼
-       scene-list-add        name that set server-side  ──►  listId
-            │
-            ▼
-       download-options      what is downloadable       (requires listId)
-            │
-            ▼
-       download-request      queue it                   ──►  label
-            │
-            ▼
-       download-retrieve     collect URLs               (by label)
-            │
-            ▼
-       HTTP GET              the actual bytes
+      scene-search        which scenes match
+           │
+           │  entityIds
+           ▼
+      scene-list-add      register that set server-side
+           │
+           │  listId
+           ▼
+      download-options    what is downloadable for those scenes
+           │
+           │  entityId + productId pairs
+           ▼
+      download-request    place the order
+           │
+           │  label
+           ▼
+      download-retrieve   collect prepared URLs
+           │
+           │  urls
+           ▼
+      HTTP GET            the bytes
 
-In this package steps 1–3 are `$search()`, `$scene_list()` and
-`$products()`, and steps 4–5 are `$request()` and `$retrieve()`.
-`$products()` performs step 2 for you, which is why the scene list is
-usually invisible.
+Follow the labels down the middle and the whole thing is a chain of
+handoffs: a search gives you scene ids, registering them gives you a
+`listId`, that gives you product ids, ordering those gives you a
+`label`, and the label eventually gives you URLs.
+
+Each endpoint maps onto one method:
+
+| API endpoint | Package | Needs | Gives you |
+|----|----|----|----|
+| `scene-search` | `$search()` | filters | `M2MSceneSearch` — `$scenes`, `$total_hits` |
+| `scene-list-add` | `$scene_list()` | scenes, dataset | `M2MSceneList` — holds the `listId` |
+| `download-options` | `$products()` | `listId`, dataset | `M2MDownloadOptions` — `$bands()`, `$scene_products()` |
+| `download-request` | `$request(label)` | entityId/productId pairs | `M2MDownloadQueue` — `$available`, `$requested` |
+| `download-retrieve` | `$refresh()` | `label` | updates `$available` in place |
+| (plain HTTP GET) | `$retrieve(dir)` | URLs | tibble of `path` and `status` per file |
+
+Two of these you will rarely call yourself. `$products()` performs
+`scene-list-add` as well as `download-options`, which is why the scene
+list is usually invisible, and `$request()` already returns whatever was
+available immediately, so `$refresh()` only matters when something
+needed staging.
 
 ## Scene lists
 

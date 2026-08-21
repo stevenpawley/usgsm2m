@@ -93,29 +93,104 @@ images.</li>
 <strong>A prepared download</strong> — the distribution system may
 have to stage a product before there is a URL to fetch.</li>
 </ol>
-<p>Each step has its own endpoint, and each depends on the one
-before:</p>
-<pre><code>   scene-search          which scenes exist
-        │
-        ▼
-   scene-list-add        name that set server-side  ──►  listId
-        │
-        ▼
-   download-options      what is downloadable       (requires listId)
-        │
-        ▼
-   download-request      queue it                   ──►  label
-        │
-        ▼
-   download-retrieve     collect URLs               (by label)
-        │
-        ▼
-   HTTP GET              the actual bytes</code></pre>
-<p>In this package steps 1–3 are <code>$search()</code>,
-<code>$scene_list()</code> and <code>$products()</code>, and steps 4–5
-are <code>$request()</code> and <code>$retrieve()</code>.
-<code>$products()</code> performs step 2 for you, which is why the scene
-list is usually invisible.</p>
+<p>Each step has its own endpoint, and each produces exactly the one
+thing the next step needs:</p>
+<pre><code>  scene-search        which scenes match
+       │
+       │  entityIds
+       ▼
+  scene-list-add      register that set server-side
+       │
+       │  listId
+       ▼
+  download-options    what is downloadable for those scenes
+       │
+       │  entityId + productId pairs
+       ▼
+  download-request    place the order
+       │
+       │  label
+       ▼
+  download-retrieve   collect prepared URLs
+       │
+       │  urls
+       ▼
+  HTTP GET            the bytes</code></pre>
+<p>Follow the labels down the middle and the whole thing is a chain of
+handoffs: a search gives you scene ids, registering them gives you a
+<code>listId</code>, that gives you product ids, ordering those gives
+you a <code>label</code>, and the label eventually gives you URLs.</p>
+<p>Each endpoint maps onto one method:</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>API endpoint</th>
+<th>Package</th>
+<th>Needs</th>
+<th>Gives you</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>scene-search</code></td>
+<td><code>$search()</code></td>
+<td>filters</td>
+<td>
+<code>M2MSceneSearch</code> — <code>$scenes</code>,
+<code>$total_hits</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>scene-list-add</code></td>
+<td><code>$scene_list()</code></td>
+<td>scenes, dataset</td>
+<td>
+<code>M2MSceneList</code> — holds the <code>listId</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>download-options</code></td>
+<td><code>$products()</code></td>
+<td>
+<code>listId</code>, dataset</td>
+<td>
+<code>M2MDownloadOptions</code> — <code>$bands()</code>,
+<code>$scene_products()</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>download-request</code></td>
+<td><code>$request(label)</code></td>
+<td>entityId/productId pairs</td>
+<td>
+<code>M2MDownloadQueue</code> — <code>$available</code>,
+<code>$requested</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>download-retrieve</code></td>
+<td><code>$refresh()</code></td>
+<td><code>label</code></td>
+<td>updates <code>$available</code> in place</td>
+</tr>
+<tr class="even">
+<td>(plain HTTP GET)</td>
+<td><code>$retrieve(dir)</code></td>
+<td>URLs</td>
+<td>tibble of <code>path</code> and <code>status</code> per file</td>
+</tr>
+</tbody>
+</table>
+<p>Two of these you will rarely call yourself. <code>$products()</code>
+performs <code>scene-list-add</code> as well as
+<code>download-options</code>, which is why the scene list is usually
+invisible, and <code>$request()</code> already returns whatever was
+available immediately, so <code>$refresh()</code> only matters when
+something needed staging.</p>
 </div>
 <div class="section level2">
 <h2 id="scene-lists">Scene lists<a class="anchor" aria-label="anchor" href="#scene-lists"></a>
