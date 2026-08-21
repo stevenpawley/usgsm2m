@@ -138,7 +138,7 @@
 <li>Every file was queued four times. The API repeats a scene’s <code>secondaryDownloads</code> under each of its product entries, and flattening them did not de-duplicate.</li>
 <li>
 <code>download-options</code> failed outright on any dataset mixing products that have bands with products that do not, affecting <code>landsat_tm_c2_l1</code>, <code>landsat_mss_c2_l1</code> and <code>eo1_ali_pub</code> among others.</li>
-<li>Dataset searches repeated a dataset once per catalog it belongs to, and dropped a dataset entirely when one of its fields was null.</li>
+<li>Dataset searches repeated a dataset once per catalog it belongs to. The same unnesting also mishandled null fields, which could drop a dataset’s row or fail outright when it had nothing else to expand against.</li>
 <li>
 <code>dataset-filters</code> repeated a Select field once per permitted value, giving 22 rows for 12 fields.</li>
 <li>

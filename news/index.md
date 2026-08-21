@@ -141,8 +141,10 @@ re-checking:
 - `download-options` failed outright on any dataset mixing products that
   have bands with products that do not, affecting `landsat_tm_c2_l1`,
   `landsat_mss_c2_l1` and `eo1_ali_pub` among others.
-- Dataset searches repeated a dataset once per catalog it belongs to,
-  and dropped a dataset entirely when one of its fields was null.
+- Dataset searches repeated a dataset once per catalog it belongs to.
+  The same unnesting also mishandled null fields, which could drop a
+  dataset’s row or fail outright when it had nothing else to expand
+  against.
 - `dataset-filters` repeated a Select field once per permitted value,
   giving 22 rows for 12 fields.
 - `scene-list-add` returned HTTP 500 for any single-scene list: JSON
