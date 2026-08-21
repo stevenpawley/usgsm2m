@@ -5,6 +5,22 @@ R interface to the USGS/EROS Machine-to-Machine (M2M) API.
 This package is not affiliated with the USGS/EROS. It is a
 community-developed interface to the M2M API for use in R.
 
+Documentation is at <https://stevenpawley.github.io/USGSm2m/>.
+
+## Installation
+
+The package is not on CRAN. Install the development version from GitHub:
+
+``` r
+
+# install.packages("pak")
+pak::pak("stevenpawley/USGSm2m")
+```
+
+You also need access to the M2M API itself, which is requested
+separately and has to be granted before any of this will work. See
+<https://m2m.cr.usgs.gov/> for details.
+
 ## Design
 
 The package is organised around a chain of objects, where each stage
