@@ -1,0 +1,231 @@
+# How scene ordering works
+
+The main vignette shows the pipeline as one chain. This one explains
+what is actually happening underneath: why getting a scene takes several
+steps, where scene lists fit, and what the download queue is doing while
+you wait.
+
+``` r
+
+library(USGSm2m)
+```
+
+## Why it takes more than one call
+
+There is no single “download this scene” endpoint. Four separate things
+have to be established before the API will hand over a file:
+
+1.  **Which scenes** you mean — found by searching a dataset.
+2.  **A server-side name for that set** — a *scene list*, because the
+    endpoints in step 3 will not accept scene ids inline.
+3.  **Which products** of those scenes you want — a scene is not one
+    file but a bundle, its individual bands, and browse images.
+4.  **A prepared download** — the distribution system may have to stage
+    a product before there is a URL to fetch.
+
+Each step has its own endpoint, and each depends on the one before:
+
+       scene-search          which scenes exist
+            │
+            ▼
+       scene-list-add        name that set server-side  ──►  listId
+            │
+            ▼
+       download-options      what is downloadable       (requires listId)
+            │
+            ▼
+       download-request      queue it                   ──►  label
+            │
+            ▼
+       download-retrieve     collect URLs               (by label)
+            │
+            ▼
+       HTTP GET              the actual bytes
+
+In this package steps 1–3 are `$search()`, `$scene_list()` and
+`$products()`, and steps 4–5 are `$request()` and `$retrieve()`.
+`$products()` performs step 2 for you, which is why the scene list is
+usually invisible.
+
+## Scene lists
+
+A scene list is a named set of scene ids held on the USGS server. It
+exists because `download-options` and `scene-metadata-list` work in bulk
+and take a `listId` rather than a list of ids in the request body.
+
+### Creating one
+
+`$scene_list()` registers the scenes from a search and returns a handle:
+
+``` r
+
+found <- sess$dataset("landsat_ot_c2_l2")$search(
+  temporal = filter_temporal("2020-07-01", "2020-07-31"),
+  max_results = 4
+)
+
+scenes <- found$scene_list()
+scenes
+#> <M2MSceneList>
+#>   List id: USGSm2m_20260821150915_vbbem6
+#>   Dataset: landsat_ot_c2_l2
+#>   Next:    $products()  |  $metadata()  |  $summary()
+```
+
+The identifier is generated for you. You can supply your own to
+`$scene_list(list_id = )` if you want a stable, memorable name to come
+back to.
+
+### How adding behaves
+
+Three behaviours are worth knowing, because none is obvious from the
+endpoint name:
+
+- Adding **appends** to a list rather than replacing its contents.
+- The call reports the list’s **cumulative** size, not how many you just
+  added.
+- Adding a scene already in the list is a **no-op**, so retries are
+  safe.
+
+Adding two scenes, then two more, then re-adding the first two, gives a
+list of four:
+
+    add first 2     -> reports 2   list holds 2
+    add next 2      -> reports 4   list holds 4
+    re-add first 2  -> reports 4   list holds 4
+
+### Lifetime
+
+Scene lists are temporary. They expire server-side after a period of
+inactivity, and `$summary()` reports a `listTimeout` for lists that
+carry one. Nothing breaks when a list expires — it simply stops being
+found, and `$scenes()` returns zero rows rather than raising an error.
+The same is true after you delete one with `$remove()`.
+
+This matters when resuming work later: **a scene list will usually be
+gone by the next session, but the download order it produced will not.**
+Reconnect to orders by label, not to scene lists by id.
+
+### Doing something with the list itself
+
+Most of the time you go straight to `$products()`. The list is worth
+holding when you want the endpoints that only work in bulk:
+
+``` r
+
+scenes$metadata()   # every scene's full metadata in one call
+scenes$summary()    # combined spatial and temporal extent of the set
+scenes$scenes()     # the entity ids currently in the list
+```
+
+`$metadata()` is the main reason to care: fetching metadata
+scene-by-scene would be one request each.
+
+If you reattach to a list by id, the package does not initially know
+which dataset it holds — the API only reveals that through the list’s
+summary — so `$dataset()` resolves it on demand:
+
+``` r
+
+again <- sess$scene_list("USGSm2m_20260821150915_vbbem6")
+again
+#>   Dataset: <unresolved>
+again$dataset()
+#> [1] "landsat_ot_c2_l2"
+```
+
+Pass `dataset_name` to `$scene_list()` to skip that lookup, or to choose
+when a list spans more than one dataset.
+
+## Choosing products
+
+A scene is not a file. `download-options` reports several *products* per
+scene, at two different granularities:
+
+- **Whole products** — a Level-1 Product Bundle (one `.tar` containing
+  the entire scene), or a full-resolution browse image. Listed by
+  `$scene_products()`.
+- **Individual files** — the separate bands and metadata files nested
+  inside a bundle. Listed by `$bands()`.
+
+For one Landsat Collection 2 scene that is roughly ten whole products
+and nineteen individual files. Browse images have no constituent files,
+so they appear only in `$scene_products()`.
+
+Pick a granularity with the matching selector, then narrow with
+`$filter()`:
+
+``` r
+
+opts <- found$products()
+
+opts$select_bands(c("B4", "B5"))$filter(bulkAvailable)   # 6 separate .TIFs
+opts$select_products("Product Bundle")$filter(available) # 1 .tar per scene
+```
+
+`$selected()` always shows what `$request()` will queue. Neither
+selector filters on availability, because the API lists superseded
+products with `available = FALSE` and silently dropping them would hide
+that they exist.
+
+## The download queue
+
+`$request()` places an order under a label. What comes back depends on
+whether the distribution system can serve the products immediately:
+
+- Products already staged return **with URLs**, in `$available`.
+- Anything needing preparation is accepted and reported in `$requested`,
+  with no URL yet.
+
+`$is_ready()` tells you which situation you are in. `$refresh()`
+re-polls and adds newly ready files to `$available`:
+
+``` r
+
+queue <- opts$select_bands(c("B4", "B5"))$request(label = "ndvi_july_2020")
+
+while (!queue$is_ready()) {
+  Sys.sleep(30)
+  queue$refresh()
+}
+
+queue$retrieve("data/landsat")
+```
+
+`$refresh()` accumulates rather than replaces, because the API drops
+entries once it has handed them over — a plain replacement would lose
+URLs collected on an earlier poll.
+
+Some orders are staged rather than queued, and need `$prepare()` to
+start processing. Along with `$cancel()`, it is one of the two methods
+here that change server-side state.
+
+## Coming back later
+
+Orders outlive both your R session and the scene list that produced
+them, so a large download does not have to finish in one sitting:
+
+``` r
+
+sess <- m2m_session()
+
+sess$download_labels()      # which orders exist
+queue <- sess$download_queue("ndvi_july_2020")
+queue$refresh()
+queue$retrieve("data/landsat")
+```
+
+`sess$downloads()` lists every individual download across all labels,
+and `queue$summary()` breaks one order down by dataset.
+
+## What lives where
+
+| Thing | Identified by | Survives your session? | Created by |
+|----|----|----|----|
+| Session | API token | No — expires when idle | [`m2m_session()`](https://stevenpawley.github.io/USGSm2m/reference/m2m_session.md) |
+| Scene list | `listId` | Usually not — expires when idle | `$scene_list()`, or implicitly by `$products()` |
+| Download order | `label` | Yes | `$request()` |
+| Downloaded files | path on disk | Yes | `$retrieve()` |
+
+The practical consequence: give orders labels you will recognise later,
+and do not expect a scene list to still be there tomorrow.
