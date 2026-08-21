@@ -26,6 +26,9 @@ list with `M2MSession$scene_list()`. Not created directly.
 not yet known. Reattaching to a list by id leaves this `NA` until
 `$dataset()` resolves it, since the API does not report a list's
 dataset except through its summary.}
+
+    \item{\code{removed}}{Whether `$remove()` has deleted this list. Lists also
+expire on their own, which this does not track.}
   }
   \if{html}{\out{</div>}}
 }

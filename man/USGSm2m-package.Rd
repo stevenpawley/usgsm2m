@@ -12,6 +12,7 @@ The USGS/EROS Machine-to-Machine (M2M) Application Programming Interface (API) p
 Useful links:
 \itemize{
   \item \url{https://github.com/stevenpawley/USGSm2m}
+  \item \url{https://stevenpawley.github.io/USGSm2m/}
   \item Report bugs at \url{https://github.com/stevenpawley/USGSm2m/issues}
 }
 
