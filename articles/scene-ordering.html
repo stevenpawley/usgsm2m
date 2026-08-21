@@ -231,23 +231,32 @@ a working session rather than across days.</p>
 finished with it.</p>
 </div>
 <div class="section level3">
-<h3 id="how-adding-behaves">How adding behaves<a class="anchor" aria-label="anchor" href="#how-adding-behaves"></a>
+<h3 id="combining-several-searches-into-one-set">Combining several searches into one set<a class="anchor" aria-label="anchor" href="#combining-several-searches-into-one-set"></a>
 </h3>
-<p>Three behaviours are worth knowing, because none is obvious from the
-endpoint name:</p>
-<ul>
-<li>Adding <strong>appends</strong> to a list rather than replacing its
-contents.</li>
-<li>The call reports the list’s <strong>cumulative</strong> size, not
-how many you just added.</li>
-<li>Adding a scene already in the list is a <strong>no-op</strong>, so
-retries are safe.</li>
-</ul>
-<p>Adding two scenes, then two more, then re-adding the first two, gives
-a list of four:</p>
-<pre><code>add first 2     -&gt; reports 2   list holds 2
-add next 2      -&gt; reports 4   list holds 4
-re-add first 2  -&gt; reports 4   list holds 4</code></pre>
+<p>One search normally means one scene list, so you will not usually
+think about what happens when scenes are added to a list that already
+exists. The exception is when you want scenes from <em>more than
+one</em> search treated as a single set — two date ranges, say, or two
+areas — so that one <code>$products()</code> call and one download order
+covers all of them.</p>
+<p>Give the searches the same <code>list_id</code> and they
+accumulate:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"landsat_ot_c2_l2"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">july</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-07-01"</span>, <span class="st">"2020-07-05"</span><span class="op">)</span>, max_results <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">sept</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-09-01"</span>, <span class="st">"2020-09-05"</span><span class="op">)</span>, max_results <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">july</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"summer_2020"</span><span class="op">)</span></span>
+<span><span class="va">scenes</span> <span class="op">&lt;-</span> <span class="va">sept</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"summer_2020"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">scenes</span><span class="op">$</span><span class="fu">scenes</span><span class="op">(</span><span class="op">)</span>      <span class="co"># all four scenes</span></span>
+<span><span class="va">scenes</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span>    <span class="co"># products for the whole set</span></span></code></pre></div>
+<p>Adding <strong>appends</strong> rather than replacing, which is what
+makes this work, and re-adding a scene already in the list is a
+<strong>no-op</strong>, so searches that overlap will not double-count.
+One wrinkle if you are watching the return value: the call reports the
+list’s <em>total</em> size, not how many scenes that call added.</p>
 </div>
 <div class="section level3">
 <h3 id="lifetime">Lifetime<a class="anchor" aria-label="anchor" href="#lifetime"></a>

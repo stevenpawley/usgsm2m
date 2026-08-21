@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   scene-ordering: scene-ordering.html
   USGSm2m: USGSm2m.html
-last_built: 2026-08-21T21:57Z
+last_built: 2026-08-21T22:06Z
 urls:
   reference: https://stevenpawley.github.io/USGSm2m/reference
   article: https://stevenpawley.github.io/USGSm2m/articles
