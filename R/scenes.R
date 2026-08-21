@@ -70,7 +70,13 @@ ers_scene_list_summary <- function(session, list_id) {
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  summary <- m2m_response_data(resp, "Scene list not found")
+  coerce_scene_list_summary(m2m_response_data(resp, "Scene list not found"))
+}
+
+
+# Turn a scene-list-summary payload into a per-dataset tibble, with the
+# overall spatial bounds attached as the "spatialBounds" attribute.
+coerce_scene_list_summary <- function(summary) {
 
   # An unknown or expired list still answers HTTP 200, but with no datasets
   # and a null spatialBounds - unnesting that raises a confusing "Column
@@ -124,7 +130,6 @@ ers_scene_list_summary <- function(session, list_id) {
   return(dataset_summary)
 }
 
-
 # Discover downloadable products for a scene list (download-options endpoint).
 # `secondaryDownloads` (the individual bands) is kept as a list-column.
 ers_scene_products <- function(session, dataset_name, list_id, band_group = TRUE) {
@@ -145,8 +150,13 @@ ers_scene_products <- function(session, dataset_name, list_id, band_group = TRUE
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  product_list <- m2m_response_data(resp, "No products found")
+  coerce_products(m2m_response_data(resp, "No products found"), band_group)
+}
 
+
+# Turn a download-options payload into one row per product, with the product's
+# individual files nested in a `secondaryDownloads` list-column.
+coerce_products <- function(product_list, band_group = TRUE) {
   if (length(product_list) == 0) {
     return(tibble::tibble())
   }

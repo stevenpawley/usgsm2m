@@ -156,16 +156,20 @@ ers_dataset_filters <- function(session, dataset_name) {
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  filter_fields <- m2m_response_data(resp, "No filters found")
+  coerce_filter_fields(m2m_response_data(resp, "No filters found"))
+}
 
+
+# Turn the dataset-filters payload into one row per filter field.
+#
+# Nested members (fieldConfig, and valueList for Select fields) become
+# list-columns: letting as_tibble() see them as plain vectors would recycle
+# each field into as many rows as it has options.
+coerce_filter_fields <- function(filter_fields) {
   if (length(filter_fields) == 0) {
     return(tibble::tibble())
   }
 
-  # Keep one row per filter field. Nested members (fieldConfig, and valueList
-  # for Select fields) become list-columns: letting as_tibble() see them as
-  # plain vectors would recycle each field into as many rows as it has
-  # options.
   filter_fields <- lapply(filter_fields, function(field) {
     field <- field[!vapply(field, is.null, logical(1))]
 
