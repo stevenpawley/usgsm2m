@@ -194,23 +194,33 @@ session rather than across days.
 
 `$remove()` deletes the list from the server when you are finished with it.
 
-### How adding behaves
+### Combining several searches into one set
 
-Three behaviours are worth knowing, because none is obvious from the endpoint
-name:
+One search normally means one scene list, so you will not usually think about
+what happens when scenes are added to a list that already exists. The exception
+is when you want scenes from *more than one* search treated as a single set —
+two date ranges, say, or two areas — so that one `$products()` call and one
+download order covers all of them.
 
-* Adding **appends** to a list rather than replacing its contents.
-* The call reports the list's **cumulative** size, not how many you just added.
-* Adding a scene already in the list is a **no-op**, so retries are safe.
+Give the searches the same `list_id` and they accumulate:
 
-Adding two scenes, then two more, then re-adding the first two, gives a list of
-four:
+```{r}
+ds <- sess$dataset("landsat_ot_c2_l2")
 
+july <- ds$search(temporal = filter_temporal("2020-07-01", "2020-07-05"), max_results = 2)
+sept <- ds$search(temporal = filter_temporal("2020-09-01", "2020-09-05"), max_results = 2)
+
+july$scene_list(list_id = "summer_2020")
+scenes <- sept$scene_list(list_id = "summer_2020")
+
+scenes$scenes()      # all four scenes
+scenes$products()    # products for the whole set
 ```
-add first 2     -> reports 2   list holds 2
-add next 2      -> reports 4   list holds 4
-re-add first 2  -> reports 4   list holds 4
-```
+
+Adding **appends** rather than replacing, which is what makes this work, and
+re-adding a scene already in the list is a **no-op**, so searches that overlap
+will not double-count. One wrinkle if you are watching the return value: the
+call reports the list's *total* size, not how many scenes that call added.
 
 ### Lifetime
 
