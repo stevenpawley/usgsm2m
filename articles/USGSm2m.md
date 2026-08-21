@@ -201,8 +201,7 @@ opts$bands()
 
 A Landsat scene has dozens of associated files, so you will usually want
 a subset. `$select_bands()` matches against `displayId`, and `$filter()`
-accepts arbitrary `dplyr` expressions. Both return a new object, leaving
-the original selection intact:
+accepts Remselection intact:
 
 ``` r
 
