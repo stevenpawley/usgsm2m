@@ -1,0 +1,48 @@
+url: https://stevenpawley.github.io/USGSm2m/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Connecting
+  desc: >
+    Authenticate against the M2M API. The session is the entry point for
+    everything else.
+  contents:
+  - m2m_session
+  - M2MSession
+
+- title: The pipeline
+  desc: >
+    Each stage returns an object whose methods are the valid next steps, from a
+    dataset through to files on disk.
+  contents:
+  - M2MDataset
+  - M2MSceneSearch
+  - M2MSceneList
+  - M2MDownloadOptions
+  - M2MDownloadQueue
+
+- title: Search filters
+  desc: >
+    Constructors for the filters accepted by `M2MDataset$search()`. The
+    metadata filters take field ids reported by `M2MDataset$filters()`.
+  contents:
+  - filter_spatial
+  - filter_temporal
+  - filter_cloud
+  - filter_metadata_value
+  - filter_metadata_between
+  - filter_metadata_and
+
+- title: Package
+  contents:
+  - USGSm2m-package
+  - "%>%"
+
+articles:
+- title: Guides
+  navbar: ~
+  contents:
+  - USGSm2m
+  - scene-ordering

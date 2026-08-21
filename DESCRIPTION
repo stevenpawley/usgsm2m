@@ -36,6 +36,6 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/stevenpawley/USGSm2m
+URL: https://github.com/stevenpawley/USGSm2m, https://stevenpawley.github.io/USGSm2m/
 BugReports: https://github.com/stevenpawley/USGSm2m/issues
 Config/roxygen2/version: 8.0.0
