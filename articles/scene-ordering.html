@@ -188,20 +188,12 @@ handed back dead.</p>
 until they expire, or until you call <code>$remove()</code>.</p>
 </div>
 <div class="section level3">
-<h3 id="the-handle">The handle<a class="anchor" aria-label="anchor" href="#the-handle"></a>
+<h3 id="working-with-the-list-directly">Working with the list directly<a class="anchor" aria-label="anchor" href="#working-with-the-list-directly"></a>
 </h3>
-<p><code>M2MSceneList</code> is not the scene list itself — it is a
-<strong>reference to one living on the server</strong>. That is why
-<code>$remove()</code> deletes it remotely, and why the object keeps
-working after the list expires: <code>$scenes()</code> simply returns
-zero rows.</p>
-<p>The class exists for three reasons: it is what
-<code>$products()</code> produces internally, so the step is
-representable rather than buried; it is the only way to reach the
-endpoints that work in bulk; and it lets you reattach to a list
-registered earlier.</p>
-<p><code>$scene_list()</code> registers the scenes from a search and
-returns that handle:</p>
+<p><code>M2MSceneList</code> is what you get back when scenes are
+registered. <code>$products()</code> creates one and uses it without
+showing you, so most of the time you never need it.
+<code>$scene_list()</code> gives you the same object to hold onto:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">found</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"landsat_ot_c2_l2"</span><span class="op">)</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span></span>
 <span>  temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-07-01"</span>, <span class="st">"2020-07-31"</span><span class="op">)</span>,</span>
@@ -214,9 +206,29 @@ returns that handle:</p>
 <span><span class="co">#&gt;   List id: USGSm2m_20260821150915_vbbem6</span></span>
 <span><span class="co">#&gt;   Dataset: landsat_ot_c2_l2</span></span>
 <span><span class="co">#&gt;   Next:    $products()  |  $metadata()  |  $summary()</span></span></code></pre></div>
-<p>The identifier is generated for you. You can supply your own to
-<code>$scene_list(list_id = )</code> if you want a stable, memorable
-name to come back to.</p>
+<p>There are three reasons to reach for it.</p>
+<p><strong>Bulk metadata.</strong> <code>$metadata()</code> fetches the
+full metadata for every scene in the list in a single call. Done scene
+by scene that would be one request each, so this is by far the most
+common reason to want the list:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scenes</span><span class="op">$</span><span class="fu">metadata</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Describing the set.</strong> <code>$summary()</code> reports
+the combined spatial and temporal extent of everything in the list, and
+<code>$scenes()</code> returns the entity ids it currently holds:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scenes</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">scenes</span><span class="op">$</span><span class="fu">scenes</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Naming a set to come back to.</strong> The identifier is
+generated for you, but you can supply your own and reattach to it later
+in the same session:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">found</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"july_2020_candidates"</span><span class="op">)</span></span>
+<span><span class="va">sess</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="st">"july_2020_candidates"</span><span class="op">)</span></span></code></pre></div>
+<p>Bear in mind that lists expire (see below), so this is useful within
+a working session rather than across days.</p>
+<p><code>$remove()</code> deletes the list from the server when you are
+finished with it.</p>
 </div>
 <div class="section level3">
 <h3 id="how-adding-behaves">How adding behaves<a class="anchor" aria-label="anchor" href="#how-adding-behaves"></a>
@@ -252,21 +264,12 @@ will not.</strong> Reconnect to orders by label, not to scene lists by
 id.</p>
 </div>
 <div class="section level3">
-<h3 id="doing-something-with-the-list-itself">Doing something with the list itself<a class="anchor" aria-label="anchor" href="#doing-something-with-the-list-itself"></a>
+<h3 id="reattaching-to-a-list">Reattaching to a list<a class="anchor" aria-label="anchor" href="#reattaching-to-a-list"></a>
 </h3>
-<p>Most of the time you go straight to <code>$products()</code>. The
-list is worth holding when you want the endpoints that only work in
-bulk:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">scenes</span><span class="op">$</span><span class="fu">metadata</span><span class="op">(</span><span class="op">)</span>   <span class="co"># every scene's full metadata in one call</span></span>
-<span><span class="va">scenes</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span><span class="op">)</span>    <span class="co"># combined spatial and temporal extent of the set</span></span>
-<span><span class="va">scenes</span><span class="op">$</span><span class="fu">scenes</span><span class="op">(</span><span class="op">)</span>     <span class="co"># the entity ids currently in the list</span></span></code></pre></div>
-<p><code>$metadata()</code> is the main reason to care: fetching
-metadata scene-by-scene would be one request each.</p>
 <p>If you reattach to a list by id, the package does not initially know
 which dataset it holds — the API only reveals that through the list’s
 summary — so <code>$dataset()</code> resolves it on demand:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">again</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="st">"USGSm2m_20260821150915_vbbem6"</span><span class="op">)</span></span>
 <span><span class="va">again</span></span>
 <span><span class="co">#&gt;   Dataset: &lt;unresolved&gt;</span></span>
@@ -295,7 +298,7 @@ and nineteen individual files. Browse images have no constituent files,
 so they appear only in <code>$scene_products()</code>.</p>
 <p>Pick a granularity with the matching selector, then narrow with
 <code>$filter()</code>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">opts</span> <span class="op">&lt;-</span> <span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">opts</span><span class="op">$</span><span class="fu">select_bands</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4"</span>, <span class="st">"B5"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">bulkAvailable</span><span class="op">)</span>   <span class="co"># 6 separate .TIFs</span></span>
@@ -320,7 +323,7 @@ immediately:</p>
 <p><code>$is_ready()</code> tells you which situation you are in.
 <code>$refresh()</code> re-polls and adds newly ready files to
 <code>$available</code>:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">queue</span> <span class="op">&lt;-</span> <span class="va">opts</span><span class="op">$</span><span class="fu">select_bands</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4"</span>, <span class="st">"B5"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="fu">request</span><span class="op">(</span>label <span class="op">=</span> <span class="st">"ndvi_july_2020"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -342,7 +345,7 @@ server-side state.</p>
 </h2>
 <p>Orders outlive both your R session and the scene list that produced
 them, so a large download does not have to finish in one sitting:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sess</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/m2m_session.html">m2m_session</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sess</span><span class="op">$</span><span class="fu">download_labels</span><span class="op">(</span><span class="op">)</span>      <span class="co"># which orders exist</span></span>

@@ -131,20 +131,12 @@ dead.
 Note that nothing deletes these lists automatically — they persist until
 they expire, or until you call `$remove()`.
 
-### The handle
+### Working with the list directly
 
-`M2MSceneList` is not the scene list itself — it is a **reference to one
-living on the server**. That is why `$remove()` deletes it remotely, and
-why the object keeps working after the list expires: `$scenes()` simply
-returns zero rows.
-
-The class exists for three reasons: it is what `$products()` produces
-internally, so the step is representable rather than buried; it is the
-only way to reach the endpoints that work in bulk; and it lets you
-reattach to a list registered earlier.
-
-`$scene_list()` registers the scenes from a search and returns that
-handle:
+`M2MSceneList` is what you get back when scenes are registered.
+`$products()` creates one and uses it without showing you, so most of
+the time you never need it. `$scene_list()` gives you the same object to
+hold onto:
 
 ``` r
 
@@ -161,9 +153,43 @@ scenes
 #>   Next:    $products()  |  $metadata()  |  $summary()
 ```
 
-The identifier is generated for you. You can supply your own to
-`$scene_list(list_id = )` if you want a stable, memorable name to come
-back to.
+There are three reasons to reach for it.
+
+**Bulk metadata.** `$metadata()` fetches the full metadata for every
+scene in the list in a single call. Done scene by scene that would be
+one request each, so this is by far the most common reason to want the
+list:
+
+``` r
+
+scenes$metadata()
+```
+
+**Describing the set.** `$summary()` reports the combined spatial and
+temporal extent of everything in the list, and `$scenes()` returns the
+entity ids it currently holds:
+
+``` r
+
+scenes$summary()
+scenes$scenes()
+```
+
+**Naming a set to come back to.** The identifier is generated for you,
+but you can supply your own and reattach to it later in the same
+session:
+
+``` r
+
+found$scene_list(list_id = "july_2020_candidates")
+sess$scene_list("july_2020_candidates")
+```
+
+Bear in mind that lists expire (see below), so this is useful within a
+working session rather than across days.
+
+`$remove()` deletes the list from the server when you are finished with
+it.
 
 ### How adding behaves
 
@@ -195,20 +221,7 @@ This matters when resuming work later: **a scene list will usually be
 gone by the next session, but the download order it produced will not.**
 Reconnect to orders by label, not to scene lists by id.
 
-### Doing something with the list itself
-
-Most of the time you go straight to `$products()`. The list is worth
-holding when you want the endpoints that only work in bulk:
-
-``` r
-
-scenes$metadata()   # every scene's full metadata in one call
-scenes$summary()    # combined spatial and temporal extent of the set
-scenes$scenes()     # the entity ids currently in the list
-```
-
-`$metadata()` is the main reason to care: fetching metadata
-scene-by-scene would be one request each.
+### Reattaching to a list
 
 If you reattach to a list by id, the package does not initially know
 which dataset it holds — the API only reveals that through the list’s
