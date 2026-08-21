@@ -2,7 +2,7 @@
 % Please edit documentation in R/filters.R
 \name{filter_spatial}
 \alias{filter_spatial}
-\title{Create a spatial filter for use in scene search}
+\title{Create a spatial filter for use in a scene search}
 \usage{
 filter_spatial(ll_lon, ll_lat, ur_lon, ur_lat)
 }
@@ -19,5 +19,8 @@ filter_spatial(ll_lon, ll_lat, ur_lon, ur_lat)
 A named list with spatial filter parameters
 }
 \description{
-Create a spatial filter for use in scene search
+Create a spatial filter for use in a scene search
+}
+\examples{
+filter_spatial(ll_lon = -120, ll_lat = 40, ur_lon = -119, ur_lat = 41)
 }

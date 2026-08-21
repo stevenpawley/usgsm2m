@@ -1,19 +1,5 @@
-#' Used to find datasets in the catalog by searching using a dataset name search
-#' pattern. Wildcards are automatically inserted at the start and end of the
-#' dataset_name string.
-#'
-#' The dataset-search method is the fundamental endpoint in the USGS M2M API that
-#' allows you to discover and search for available datasets within the USGS/EROS
-#' data inventory.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#'   function.
-#' @param dataset_name Search pattern to use for the dataset name.
-#' @param spatial_filter Optional spatialFilter dict.
-#' @param temporal_filter Optional spatialFilter dict.
-#'
-#' @return A tibble containing the dataset name, description, and other metadata
-#' @export
+# Search the dataset catalog by name pattern (dataset-search endpoint).
+# Wildcards are automatically inserted around dataset_name by the API.
 ers_dataset_search <- function(
     session,
     dataset_name,
@@ -39,8 +25,8 @@ ers_dataset_search <- function(
 
   datasets <- m2m_response_data(datasearch_result, "Dataset search failed")
 
-  if (is.null(datasets)) {
-    return(NULL)
+  if (length(datasets) == 0) {
+    return(tibble::tibble())
   }
 
   df <- datasets %>%
@@ -59,13 +45,26 @@ ers_dataset_search <- function(
 # Shared by ers_dataset_search() (multi-row) and ers_dataset() (single-row),
 # which both return the same per-dataset record shape from the M2M API.
 coerce_dataset_df <- function(df) {
-  unnest_cols <- if ("spatialBounds" %in% names(df)) {
-    rlang::expr(c(dplyr::where(is.list), -"spatialBounds"))
-  } else {
-    rlang::expr(dplyr::where(is.list))
+  # jsonify leaves a null field as a zero-length list element and a
+  # multi-valued field (e.g. catalogs) as a longer one. Unwrap only the
+  # length-1 cases into plain columns and fill nulls with NA: unnesting a
+  # multi-valued field would repeat its dataset across several rows, and
+  # unnesting a null one would drop that dataset's row entirely.
+  list_cols <- names(df)[vapply(
+    df,
+    function(col) is.list(col) && !is.data.frame(col),
+    logical(1)
+  )]
+
+  for (nm in setdiff(list_cols, "spatialBounds")) {
+    col <- df[[nm]]
+    lens <- lengths(col)
+
+    if (all(lens <= 1)) {
+      col[lens == 0] <- NA
+      df[[nm]] <- unlist(col, use.names = FALSE)
+    }
   }
-  df <- df |>
-    tidyr::unnest(!!unnest_cols)
 
   # coerce spatialBounds to nested tibble
   if ("spatialBounds" %in% names(df)) {
@@ -88,8 +87,9 @@ coerce_dataset_df <- function(df) {
     df$temporalCoverage <- lapply(df$temporalCoverage, format_temporal)
   }
 
-  # coerce catalogs
-  if ("catalogs" %in% names(df)) {
+  # catalogs is genuinely multi-valued for some datasets, so it stays a
+  # list-column; normalize the data.frame form jsonify sometimes returns.
+  if ("catalogs" %in% names(df) && is.data.frame(df$catalogs)) {
     df$catalogs <- apply(df$catalogs, 1, function(x) x)
   }
 
@@ -97,22 +97,7 @@ coerce_dataset_df <- function(df) {
 }
 
 
-#' Look up a single dataset by ID or name
-#'
-#' Use this to resolve a dataset's ID/alias and full metadata, or as a
-#' prerequisite lookup before calling `ers_dataset_filters()` or
-#' `ers_scene_search()`.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#'   function.
-#' @param dataset_id The dataset identifier. Use this or `dataset_name`, not
-#'   both.
-#' @param dataset_name The system-friendly dataset name (alias), for example
-#'   'landsat_ot_c2_l2'. Use this or `dataset_id`, not both.
-#'
-#' @return A single-row tibble containing the dataset name, description, and
-#'   other metadata.
-#' @export
+# Look up a single dataset by id or alias (dataset endpoint).
 ers_dataset <- function(session, dataset_id = NULL, dataset_name = NULL) {
   if (is.null(dataset_id) && is.null(dataset_name)) {
     stop("dataset_id or dataset_name must be supplied")
@@ -134,8 +119,17 @@ ers_dataset <- function(session, dataset_id = NULL, dataset_name = NULL) {
 
   dataset <- m2m_response_data(resp, "Dataset not found")
 
-  if (is.null(dataset)) {
-    return(NULL)
+  # An unknown dataset comes back as HTTP 200 with a null payload and no
+  # errorCode, so m2m_check_response() sees nothing wrong - turn that into a
+  # real error rather than letting the coercion below fail obscurely.
+  if (length(dataset) == 0) {
+    rlang::abort(
+      paste0(
+        "Dataset not found: ",
+        if (is.null(dataset_name)) dataset_id else dataset_name
+      ),
+      class = c("m2m_not_found", "m2m_error")
+    )
   }
 
   # Wrap in a list so jsonify serializes it as a one-element JSON array:
@@ -151,21 +145,8 @@ ers_dataset <- function(session, dataset_id = NULL, dataset_name = NULL) {
 }
 
 
-#' Retrieve the metadata filter fields available for a dataset
-#'
-#' These filter fields are used to build a `metadataFilter` for
-#' `filter_scene()` / `ers_scene_search()`: each row's `id` is the
-#' `filterId` that a metadata filter refers to.
-#'
-#' @param session An object of class "ers_session" returned by the `ers_login`
-#'   function.
-#' @param dataset_name The system-friendly dataset name (alias), for example
-#'   'landsat_ot_c2_l2'.
-#'
-#' @return A tibble with one row per filter field, including `id`
-#'   (the `filterId`), `legacyFieldId`, `fieldLabel`, `searchSql`, and
-#'   `fieldConfig` (a list-column, since its shape varies by filter type).
-#' @export
+# Retrieve the metadata filter fields for a dataset (dataset-filters endpoint).
+# Each row's `id` is the filterId used when building a metadataFilter.
 ers_dataset_filters <- function(session, dataset_name) {
   resp <- session$service %>%
     httr2::request() %>%
@@ -177,20 +158,22 @@ ers_dataset_filters <- function(session, dataset_name) {
 
   filter_fields <- m2m_response_data(resp, "No filters found")
 
-  if (is.null(filter_fields)) {
-    return(NULL)
+  if (length(filter_fields) == 0) {
+    return(tibble::tibble())
   }
 
+  # Keep one row per filter field. Nested members (fieldConfig, and valueList
+  # for Select fields) become list-columns: letting as_tibble() see them as
+  # plain vectors would recycle each field into as many rows as it has
+  # options.
   filter_fields <- lapply(filter_fields, function(field) {
-    df <- field %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
+    field <- field[!vapply(field, is.null, logical(1))]
 
-    meta <- df[names(df) != "fieldConfig"]
-    meta <- meta[!sapply(meta, is.null)]
-    meta <- dplyr::as_tibble(meta)
-    meta$fieldConfig <- list(df$fieldConfig)
-    meta
+    cells <- lapply(field, function(x) {
+      if (length(x) == 1 && !is.list(x)) x else list(x)
+    })
+
+    tibble::as_tibble(cells)
   })
 
   purrr::list_rbind(filter_fields)

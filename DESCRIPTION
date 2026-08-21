@@ -18,20 +18,23 @@ Description: The USGS/EROS Machine-to-Machine (M2M) Application Programming
   community-developed interface to the M2M API for use in R.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Imports: 
+Imports:
     dplyr,
-    glue,
     httr2,
     jsonify,
     magrittr,
     purrr,
+    R6,
     rlang,
     stats,
     stringr,
     tibble,
     tidyr
-Suggests: 
+Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://github.com/stevenpawley/USGSm2m
 BugReports: https://github.com/stevenpawley/USGSm2m/issues
