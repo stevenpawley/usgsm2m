@@ -217,9 +217,7 @@ scenes$products()    # products for the whole set
 
 Adding **appends** rather than replacing, which is what makes this work,
 and re-adding a scene already in the list is a **no-op**, so searches
-that overlap will not double-count. One wrinkle if you are watching the
-return value: the call reports the list’s *total* size, not how many
-scenes that call added.
+that overlap will not double-count.
 
 ### Lifetime
 

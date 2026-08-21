@@ -254,9 +254,8 @@ accumulate:</p>
 <span><span class="va">scenes</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span>    <span class="co"># products for the whole set</span></span></code></pre></div>
 <p>Adding <strong>appends</strong> rather than replacing, which is what
 makes this work, and re-adding a scene already in the list is a
-<strong>no-op</strong>, so searches that overlap will not double-count.
-One wrinkle if you are watching the return value: the call reports the
-list’s <em>total</em> size, not how many scenes that call added.</p>
+<strong>no-op</strong>, so searches that overlap will not
+double-count.</p>
 </div>
 <div class="section level3">
 <h3 id="lifetime">Lifetime<a class="anchor" aria-label="anchor" href="#lifetime"></a>
