@@ -36,14 +36,13 @@ directly.
 
 ### `M2MSession$new()`
 
-Authenticate and open a session.
+Authenticate and open a session. Both arguments are required;
+\[m2m_session()\] is the documented way in and is what supplies the
+\`M2M_USERNAME\` / \`M2M_TOKEN\` defaults.
 
 #### Usage
 
-    M2MSession$new(
-      username = Sys.getenv("M2M_USERNAME"),
-      token = Sys.getenv("M2M_TOKEN")
-    )
+    M2MSession$new(username, token)
 
 #### Arguments
 

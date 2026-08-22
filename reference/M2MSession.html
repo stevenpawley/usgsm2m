@@ -65,12 +65,11 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.</p>
 <li><p><a href="#method-M2MSession-clone"><code>M2MSession$clone()</code></a></p></li>
 </ul></div><p></p><hr><a id="method-M2MSession-initialize"></a><div class="section">
 <h3 id="m-msession-new-"><code>M2MSession$new()</code><a class="anchor" aria-label="anchor" href="#m-msession-new-"></a></h3>
-<p>Authenticate and open a session.</p><div class="section">
+<p>Authenticate and open a session. Both arguments are
+  required; [m2m_session()] is the documented way in and is what
+  supplies the `M2M_USERNAME` / `M2M_TOKEN` defaults.</p><div class="section">
 <h4 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va"><a href="../reference/M2MSession.html">M2MSession</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span></span>
-<span>  username <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"M2M_USERNAME"</span><span class="op">)</span>,</span>
-<span>  token <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"M2M_TOKEN"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va"><a href="../reference/M2MSession.html">M2MSession</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">username</span>, <span class="va">token</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>username</code></dt>
