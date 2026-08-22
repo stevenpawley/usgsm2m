@@ -168,7 +168,7 @@
 <div class="section level2">
 <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a>
 </h2>
-<p>API failures raise errors of class <code>m2m_error</code> (with <code>m2m_http_error</code>, <code>m2m_api_error</code>, or <code>m2m_not_found</code> subclasses) rather than returning <code>NULL</code>, so a broken step stops the chain rather than surfacing later as a confusing error:</p>
+<p>API failures raise errors of class <code>m2m_error</code> (with <code>m2m_http_error</code>, <code>m2m_api_error</code>, <code>m2m_not_found</code>, or <code>m2m_no_access</code> subclasses) rather than returning <code>NULL</code>, so a broken step stops the chain rather than surfacing later as a confusing error:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"not_a_real_dataset"</span><span class="op">)</span>,</span>
