@@ -104,8 +104,12 @@ ers_download_files <- function(session, downloads, out_dir) {
   results <- purrr::pmap(
     list(downloads$entityId, downloads$url, download_ids),
     function(entityId, url, downloadId) {
-      filename <- file.path(out_dir, entityId)
-      filename <- gsub("_TIF", ".TIF", filename)
+      # The real name is only known once the server has answered, so stream to
+      # a scratch file in the destination directory and rename it afterwards.
+      # Writing it in out_dir keeps the rename on one filesystem, and a failed
+      # transfer leaves nothing behind rather than a file named after the scene
+      # holding an error body.
+      scratch <- tempfile("m2m-", tmpdir = out_dir)
 
       req <- httr2::request(url) %>%
         httr2::req_retry(max_tries = 5L, backoff = function(x) 30) %>%
@@ -119,10 +123,19 @@ ers_download_files <- function(session, downloads, out_dir) {
         req <- httr2::req_headers(req, `X-Auth-Token` = session$api_key)
       }
 
-      resp <- httr2::req_perform(req, path = filename)
+      resp <- httr2::req_perform(req, path = scratch)
       status <- httr2::resp_status(resp)
 
       if (status == 200) {
+        filename <- file.path(
+          out_dir,
+          m2m_download_name(resp, url = url, entityId = entityId)
+        )
+
+        if (file.exists(scratch)) {
+          file.rename(scratch, filename)
+        }
+
         return(tibble::tibble(
           entityId = entityId,
           downloadId = downloadId,
@@ -132,6 +145,8 @@ ers_download_files <- function(session, downloads, out_dir) {
           status = "downloaded"
         ))
       }
+
+      unlink(scratch)
 
       # A signed URL that has expired comes back as 403, which is otherwise an
       # opaque failure.
@@ -149,6 +164,113 @@ ers_download_files <- function(session, downloads, out_dir) {
   )
 
   purrr::list_rbind(results)
+}
+
+
+# Work out what to call a downloaded file.
+#
+# The queue identifies files by entityId, which for a scene-level product such
+# as a Level-2 bundle is the scene id and carries no extension at all - naming
+# the file after it leaves a `.tar` on disk that nothing recognizes. The server
+# knows the real name, so ask it: Content-Disposition first, then the basename
+# of the URL actually served (which is the signed URL's path for proxied
+# downloads), and only then fall back to the entityId.
+m2m_download_name <- function(resp, url, entityId) {
+  from_header <- m2m_content_disposition_name(
+    httr2::resp_header(resp, "content-disposition")
+  )
+  if (!is.null(from_header)) {
+    return(from_header)
+  }
+
+  from_url <- m2m_url_name(httr2::resp_url(resp) %||% url)
+  if (!is.null(from_url)) {
+    return(from_url)
+  }
+
+  # Individual band files are the one case where the entityId does encode an
+  # extension, as a trailing `_TIF`-style suffix.
+  sub("_(TIF|TIFF|JPG|PNG|XML|TXT|JSON|TAR|ZIP|GZ|MET|HDF|IMG)$", ".\\1", entityId)
+}
+
+
+# The filename from a Content-Disposition header, or NULL if it has none.
+#
+# RFC 5987 `filename*` wins over plain `filename` where both are present, being
+# the encoded form the server prefers.
+m2m_content_disposition_name <- function(header) {
+  if (is.null(header) || is.na(header) || !nzchar(header)) {
+    return(NULL)
+  }
+
+  extended <- regmatches(
+    header,
+    regexpr("filename\\*\\s*=\\s*[^;]+", header, ignore.case = TRUE)
+  )
+  if (length(extended) == 1) {
+    value <- sub("^[^=]*=\\s*", "", extended)
+    # charset'language'value - only the value is wanted, percent-decoded.
+    value <- sub("^[^']*'[^']*'", "", value)
+    return(m2m_safe_filename(try_url_decode(value)))
+  }
+
+  plain <- regmatches(
+    header,
+    regexpr("filename\\s*=\\s*(\"[^\"]*\"|[^;]+)", header, ignore.case = TRUE)
+  )
+  if (length(plain) == 1) {
+    value <- sub("^[^=]*=\\s*", "", plain)
+    value <- gsub("^\"|\"$", "", trimws(value))
+    return(m2m_safe_filename(value))
+  }
+
+  NULL
+}
+
+
+# The filename from a URL's path, or NULL if it does not look like one.
+#
+# Download endpoints are as often a bare id or a `gen-bundle`-style handler as
+# a real file, so a basename is only trusted when it carries an extension.
+m2m_url_name <- function(url) {
+  if (is.null(url) || is.na(url) || !nzchar(url)) {
+    return(NULL)
+  }
+
+  path <- sub("[?#].*$", "", url)
+  # Strip scheme and host: a bare "https://host.gov" would otherwise yield the
+  # host itself, whose ".gov" reads as an extension.
+  path <- sub("^[A-Za-z][A-Za-z0-9+.-]*://[^/]*", "", path)
+
+  if (!nzchar(path) || path == "/") {
+    return(NULL)
+  }
+
+  name <- try_url_decode(basename(path))
+
+  if (!grepl("\\.[A-Za-z0-9]{1,8}$", name)) {
+    return(NULL)
+  }
+
+  m2m_safe_filename(name)
+}
+
+
+# Reduce a server-supplied name to something safe to create in out_dir.
+m2m_safe_filename <- function(name) {
+  name <- basename(gsub("\\\\", "/", trimws(name)))
+  name <- gsub("[/\\\\]", "_", name)
+
+  if (!nzchar(name) || name %in% c(".", "..")) {
+    return(NULL)
+  }
+
+  name
+}
+
+
+try_url_decode <- function(x) {
+  tryCatch(utils::URLdecode(x), error = function(e) x)
 }
 
 
@@ -212,7 +334,7 @@ ers_download_summary <- function(
   }
 
   if (is.null(download_application)) {
-    stop("download_application is required by the download-summary endpoint")
+    stop("download_application is required")
   }
 
   resp <- session$service %>%
@@ -335,11 +457,7 @@ ers_download_remove_items <- function(session, download_id, quiet = FALSE) {
   }
 
   if (!quiet && length(download_id) > 25) {
-    message(
-      "Removing ", length(download_id),
-      " items; the API takes one per request, so this makes ",
-      length(download_id), " calls"
-    )
+    message("Removing ", length(download_id), " items")
   }
 
   for (id in download_id) {

@@ -51,7 +51,7 @@ test_that("removing nothing makes no request", {
   }
 })
 
-test_that("a large batch warns how many calls it will make", {
+test_that("a large batch says how many items it is removing", {
   responses <- rep(list(mock_response()), 30)
 
   expect_message(
@@ -59,7 +59,7 @@ test_that("a large batch warns how many calls it will make", {
       responses,
       ers_download_remove_items(mock_session(), seq_len(30))
     ),
-    "30 calls"
+    "Removing 30 items"
   )
 })
 

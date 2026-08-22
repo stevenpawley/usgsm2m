@@ -61,6 +61,14 @@
 
 ## Bug fixes
 
+* Downloaded files now keep the extension the server gives them, taken from
+  the `Content-Disposition` header or the URL served. Scene-level products such
+  as a Level-2 Product Bundle were written out named after the scene's
+  `entityId`, which has no extension at all, leaving a `.tar` on disk that
+  nothing would open.
+
+* A download that fails no longer leaves a file behind holding the error body.
+
 * Asking for a dataset the account cannot access reported it as missing:
   `"Dataset not found: Dataset status is unavailable to this user"`. The
   dataset exists and is spelled correctly, so this sent people hunting for a

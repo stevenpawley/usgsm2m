@@ -342,6 +342,11 @@ M2MDownloadQueue <- R6::R6Class(
     #' @description Download every file that has a URL to disk. Call
     #'   `$refresh()` first if `$is_ready()` is `FALSE`.
     #'
+    #'   Files are named as the server names them - the `.tar` of a product
+    #'   bundle, the `.TIF` of a band - rather than after the `entityId` the
+    #'   queue lists them under, which for a scene-level product is the scene
+    #'   id and carries no extension.
+    #'
     #'   Proxied downloads are reported back to the API afterwards, since it
     #'   does not serve them itself and would otherwise leave them in the
     #'   queue indefinitely.
