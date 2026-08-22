@@ -3,6 +3,26 @@ test_that("m2m_session validates credentials before calling the API", {
   expect_error(m2m_session(username = "user", token = ""), "Token cannot be NULL")
 })
 
+test_that("the environment defaults live only on m2m_session()", {
+  # $new() is not the documented entry point and no longer reads the
+  # environment, so the defaults are defined in exactly one place
+  expect_error(M2MSession$new(), "Username cannot be NULL")
+  expect_error(M2MSession$new(username = "user"), "Token cannot be NULL")
+
+  withr::with_envvar(
+    c(M2M_USERNAME = "from_env", M2M_TOKEN = "also_from_env"),
+    {
+      captured <- with_captured_requests(
+        mock_response(data = "an_api_key"),
+        m2m_session()
+      )
+      body <- request_body(captured$requests[[1]])
+      expect_equal(body$username, "from_env")
+      expect_equal(body$token, "also_from_env")
+    }
+  )
+})
+
 test_that("m2m_session connects and exposes the pipeline entry points", {
   skip_if_no_m2m()
 

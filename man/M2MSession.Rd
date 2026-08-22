@@ -28,13 +28,12 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.
 \if{html}{\out{<a id="method-M2MSession-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-M2MSession-initialize}{}}}
 \subsection{\code{M2MSession$new()}}{
-  Authenticate and open a session.
+  Authenticate and open a session. Both arguments are
+  required; [m2m_session()] is the documented way in and is what
+  supplies the `M2M_USERNAME` / `M2M_TOKEN` defaults.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{M2MSession$new(
-  username = Sys.getenv("M2M_USERNAME"),
-  token = Sys.getenv("M2M_TOKEN")
-)}
+    \preformatted{M2MSession$new(username, token)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{

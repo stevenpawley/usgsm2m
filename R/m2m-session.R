@@ -55,15 +55,24 @@ m2m_session <- function(
 M2MSession <- R6::R6Class(
   "M2MSession",
   public = list(
-    #' @description Authenticate and open a session.
+    #' @description Authenticate and open a session. Both arguments are
+    #'   required; [m2m_session()] is the documented way in and is what
+    #'   supplies the `M2M_USERNAME` / `M2M_TOKEN` defaults.
     #' @param username ERS username.
     #' @param token Earth Explorer M2M application token.
-    initialize = function(
-      username = Sys.getenv("M2M_USERNAME"),
-      token = Sys.getenv("M2M_TOKEN")
-    ) {
+    initialize = function(username, token) {
+      if (missing(username) || is.null(username) || !is.character(username) ||
+        nchar(username) == 0) {
+        stop("Username cannot be NULL and must be a character string")
+      }
+
+      if (missing(token) || is.null(token) || !is.character(token) ||
+        nchar(token) == 0) {
+        stop("Token cannot be NULL and must be a character string")
+      }
+
       private$service_url <- "https://m2m.cr.usgs.gov/api/api/json/stable/"
-      private$api_key <- m2m_login(username, token, private$service_url)
+      private$api_key <- private$login(username, token)
       private$username_ <- username
       invisible(self)
     },
@@ -176,7 +185,19 @@ M2MSession <- R6::R6Class(
     #'   also expire on their own after a period of inactivity.
     #' @return The session, invisibly.
     logout = function() {
-      m2m_logout(private$session())
+      # $session() refuses if this session was already logged out, so a second
+      # call errors rather than quietly re-sending a dead key.
+      session <- private$session()
+
+      resp <- session$service %>%
+        httr2::request() %>%
+        httr2::req_url_path_append("logout") %>%
+        httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+        httr2::req_error(is_error = function(resp) FALSE) %>%
+        httr2::req_perform()
+
+      m2m_check_response(resp, "Logout failed")
+
       private$api_key <- NULL
       invisible(self)
     },
@@ -197,6 +218,34 @@ M2MSession <- R6::R6Class(
     api_key = NULL,
     service_url = NULL,
     username_ = NULL,
+
+    # Exchange credentials for an API key via the login-token endpoint.
+    #
+    # This is the one endpoint that does not take a session, since it is what
+    # produces one - so it lives here rather than alongside the ers_* transport
+    # functions, whose shared signature it could not follow anyway.
+    login = function(username, token) {
+      resp <- tryCatch(
+        {
+          httr2::request(private$service_url) %>%
+            httr2::req_url_path_append("login-token") %>%
+            httr2::req_body_json(list(username = username, token = token)) %>%
+            httr2::req_error(is_error = function(resp) FALSE) %>%
+            httr2::req_perform()
+        },
+        error = function(e) {
+          stop("Login was unsuccessful, check: https://ers.cr.usgs.gov/registers")
+        }
+      )
+
+      api_key <- m2m_response_data(resp, "Login was unsuccessful")
+
+      if (is.null(api_key)) {
+        stop("Login was unsuccessful: no API key returned")
+      }
+
+      api_key
+    },
 
     # The internal endpoint functions take a plain list session; build one
     # on demand rather than storing a second copy of the credentials.

@@ -281,25 +281,41 @@ test_that("an unknown dataset is reported as not found", {
 
 # --- authentication ----------------------------------------------------------
 
-test_that("login returns the API key from the response", {
+test_that("logging in sends the credentials and keeps the key it gets back", {
   captured <- with_captured_requests(
     mock_response(data = "an_api_key"),
-    m2m_login("user", "token", "https://m2m.cr.usgs.gov/api/api/json/stable/")
+    m2m_session(username = "user", token = "token")
   )
-
-  expect_equal(captured$result, "an_api_key")
 
   body <- request_body(captured$requests[[1]])
   expect_equal(body$username, "user")
   expect_equal(body$token, "token")
+
+  expect_s3_class(captured$result, "M2MSession")
+  # the key is private, and reached the same way the sibling classes reach it
+  expect_equal(m2m_session_handle(captured$result)$api_key, "an_api_key")
 })
 
 test_that("a rejected login raises rather than returning a broken session", {
   expect_error(
     with_captured_requests(
       mock_response(error_code = "AUTH_INVALID", error_message = "bad token"),
-      m2m_login("user", "token", "https://m2m.cr.usgs.gov/api/api/json/stable/")
+      m2m_session(username = "user", token = "token")
     ),
     class = "m2m_api_error"
   )
+})
+
+test_that("a logged-out session refuses to make further requests", {
+  session <- with_captured_requests(
+    list(mock_response(data = "an_api_key"), mock_response(data = list())),
+    {
+      sess <- m2m_session(username = "user", token = "token")
+      sess$logout()
+      sess
+    }
+  )$result
+
+  expect_error(session$downloads(), "logged out")
+  expect_output(print(session), "logged out")
 })
