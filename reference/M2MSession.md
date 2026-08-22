@@ -26,6 +26,8 @@ directly.
 
 - [`M2MSession$scene_list()`](#method-M2MSession-scene_list)
 
+- [`M2MSession$ers_session()`](#method-M2MSession-ers_session)
+
 - [`M2MSession$logout()`](#method-M2MSession-logout)
 
 - [`M2MSession$print()`](#method-M2MSession-print)
@@ -255,6 +257,21 @@ Attach to a scene list that already exists server-side.
 #### Returns
 
 An \[M2MSceneList\] object.
+
+------------------------------------------------------------------------
+
+### `M2MSession$ers_session()`
+
+Return the small session value used by the package's internal HTTP
+functions. This method is intended for package internals.
+
+#### Usage
+
+    M2MSession$ers_session()
+
+#### Returns
+
+An internal \`ers_session\` object.
 
 ------------------------------------------------------------------------
 

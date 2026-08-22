@@ -225,8 +225,8 @@ unique id, add the scenes under it, then pass the same id <em>and the
 same dataset name</em> to the next call.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">list_id</span> <span class="op">&lt;-</span> <span class="st">"my_unique_id_12345"</span></span>
-<span><span class="fu">ers_scene_list_add</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">scenes</span>, <span class="va">list_id</span><span class="op">)</span></span>
-<span><span class="va">products</span> <span class="op">&lt;-</span> <span class="fu">ers_scene_products</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">list_id</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">api_scene_list_add</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">scenes</span>, <span class="va">list_id</span><span class="op">)</span></span>
+<span><span class="va">products</span> <span class="op">&lt;-</span> <span class="fu">api_scene_products</span><span class="op">(</span><span class="va">session</span>, <span class="st">"landsat_ot_c2_l2"</span>, <span class="va">list_id</span><span class="op">)</span></span></code></pre></div>
 <p>Three things have to stay consistent there, and each fails in its own
 way: a reused identifier silently appends to an existing set, a
 mismatched <code>datasetName</code> fails obscurely, and the id has to

@@ -58,7 +58,7 @@ Wrap download options. Use \`M2MSceneSearch\$products()\` instead.
 
 #### Usage
 
-    M2MDownloadOptions$new(session, products, scene_list, selected = NULL)
+    M2MDownloadOptions$new(session, products, selected = NULL)
 
 #### Arguments
 
@@ -69,10 +69,6 @@ Wrap download options. Use \`M2MSceneSearch\$products()\` instead.
 - `products`:
 
   A tibble of products from the download-options endpoint.
-
-- `scene_list`:
-
-  The \[M2MSceneList\] the products belong to.
 
 - `selected`:
 
