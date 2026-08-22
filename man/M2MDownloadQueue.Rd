@@ -32,6 +32,7 @@ download and which the distribution system is still preparing.
     \item \href{#method-M2MDownloadQueue-retrieve}{\code{M2MDownloadQueue$retrieve()}}
     \item \href{#method-M2MDownloadQueue-summary}{\code{M2MDownloadQueue$summary()}}
     \item \href{#method-M2MDownloadQueue-prepare}{\code{M2MDownloadQueue$prepare()}}
+    \item \href{#method-M2MDownloadQueue-remove_items}{\code{M2MDownloadQueue$remove_items()}}
     \item \href{#method-M2MDownloadQueue-cancel}{\code{M2MDownloadQueue$cancel()}}
     \item \href{#method-M2MDownloadQueue-print}{\code{M2MDownloadQueue$print()}}
     \item \href{#method-M2MDownloadQueue-clone}{\code{M2MDownloadQueue$clone()}}
@@ -208,6 +209,32 @@ if it does not match the one used at request time.}
     \describe{
       \item{\code{download_application}}{Optional application name to scope the
 order to.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The queue, invisibly.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-remove_items"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-remove_items}{}}}
+\subsection{\code{M2MDownloadQueue$remove_items()}}{
+  Remove individual files from this order, leaving the rest
+  of it in place. `$cancel()` drops the whole order instead.
+
+  Ids come from the `downloadId` column of `$ready()` or `$pending()`.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$remove_items(download_id, quiet = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_id}}{A vector of download ids.}
+      \item{\code{quiet}}{Suppress the message shown before a large batch.}
     }
     \if{html}{\out{</div>}}
   }

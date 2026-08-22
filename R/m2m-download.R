@@ -375,6 +375,22 @@ M2MDownloadQueue <- R6::R6Class(
       invisible(self)
     },
 
+    #' @description Remove individual files from this order, leaving the rest
+    #'   of it in place. `$cancel()` drops the whole order instead.
+    #'
+    #'   Ids come from the `downloadId` column of `$ready()` or `$pending()`.
+    #' @param download_id A vector of download ids.
+    #' @param quiet Suppress the message shown before a large batch.
+    #' @return The queue, invisibly.
+    remove_items = function(download_id, quiet = FALSE) {
+      ers_download_remove_items(
+        m2m_session_handle(private$session_),
+        download_id,
+        quiet = quiet
+      )
+      invisible(self)
+    },
+
     #' @description Cancel this order, removing it from the M2M queue.
     #' @return The queue, invisibly.
     cancel = function() {

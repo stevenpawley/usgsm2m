@@ -321,9 +321,28 @@ ers_download_remove_order <- function(session, label) {
 }
 
 
-# Remove individual items from a download order (download-remove endpoint).
-ers_download_remove_items <- function(session, downloadId) {
-  for (id in downloadId) {
+# Remove individual items from the download queue (download-remove endpoint).
+#
+# The endpoint takes one downloadId per call - an array under the same key is
+# rejected, and there is no plural form - so this is one request per item.
+# It also answers 200 for an id that does not exist, so a successful call is
+# not evidence that anything was removed.
+ers_download_remove_items <- function(session, download_id, quiet = FALSE) {
+  download_id <- unique(download_id[!is.na(download_id)])
+
+  if (length(download_id) == 0) {
+    return(invisible(0L))
+  }
+
+  if (!quiet && length(download_id) > 25) {
+    message(
+      "Removing ", length(download_id),
+      " items; the API takes one per request, so this makes ",
+      length(download_id), " calls"
+    )
+  }
+
+  for (id in download_id) {
     resp <- session$service %>%
       httr2::request() %>%
       httr2::req_url_path_append("download-remove") %>%
@@ -335,5 +354,5 @@ ers_download_remove_items <- function(session, downloadId) {
     m2m_check_response(resp, paste0("Failed to remove download item ", id))
   }
 
-  invisible(NULL)
+  invisible(length(download_id))
 }

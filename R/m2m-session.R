@@ -115,6 +115,27 @@ M2MSession <- R6::R6Class(
       ers_download_search(private$session())
     },
 
+    #' @description Remove individual downloads from the queue, across any
+    #'   label. Use this to clear out completed or unwanted entries without
+    #'   dropping a whole order the way `M2MDownloadQueue$cancel()` does.
+    #'
+    #'   Ids come from the `downloadId` column of `$downloads()`:
+    #'
+    #'   ```
+    #'   done <- dplyr::filter(sess$downloads(), statusText == "Complete")
+    #'   sess$remove_items(done$downloadId)
+    #'   ```
+    #'
+    #'   The API removes one item per request and answers the same way for an
+    #'   id that does not exist, so a successful call is not evidence that
+    #'   anything was removed - check `$downloads()` afterwards.
+    #' @param download_id A vector of download ids.
+    #' @param quiet Suppress the message shown before a large batch.
+    #' @return The number of ids submitted, invisibly.
+    remove_items = function(download_id, quiet = FALSE) {
+      ers_download_remove_items(private$session(), download_id, quiet = quiet)
+    },
+
     #' @description List the distinct order labels in the download queue, one
     #'   row each. Use this to find an order to reconnect to with
     #'   `$download_queue()` when you no longer remember its label.

@@ -15,6 +15,7 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.
     \item \href{#method-M2MSession-find_datasets}{\code{M2MSession$find_datasets()}}
     \item \href{#method-M2MSession-download_queue}{\code{M2MSession$download_queue()}}
     \item \href{#method-M2MSession-downloads}{\code{M2MSession$downloads()}}
+    \item \href{#method-M2MSession-remove_items}{\code{M2MSession$remove_items()}}
     \item \href{#method-M2MSession-download_labels}{\code{M2MSession$download_labels()}}
     \item \href{#method-M2MSession-eula}{\code{M2MSession$eula()}}
     \item \href{#method-M2MSession-scene_list}{\code{M2MSession$scene_list()}}
@@ -134,6 +135,42 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.
   }
   \subsection{Returns}{
     A tibble of queued downloads.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MSession-remove_items"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MSession-remove_items}{}}}
+\subsection{\code{M2MSession$remove_items()}}{
+  Remove individual downloads from the queue, across any
+  label. Use this to clear out completed or unwanted entries without
+  dropping a whole order the way `M2MDownloadQueue$cancel()` does.
+
+  Ids come from the `downloadId` column of `$downloads()`:
+
+  ```
+  done <- dplyr::filter(sess$downloads(), statusText == "Complete")
+  sess$remove_items(done$downloadId)
+  ```
+
+  The API removes one item per request and answers the same way for an
+  id that does not exist, so a successful call is not evidence that
+  anything was removed - check `$downloads()` afterwards.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MSession$remove_items(download_id, quiet = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_id}}{A vector of download ids.}
+      \item{\code{quiet}}{Suppress the message shown before a large batch.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The number of ids submitted, invisibly.
   }
 }
 
