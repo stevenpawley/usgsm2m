@@ -135,8 +135,11 @@ A tibble of products, without the \`secondaryDownloads\` column.
 Select the individual files whose \`displayId\` matches any of the given
 patterns.
 
-Patterns are matched against \`displayId\`, whose values you can see in
-\`\$bands()\`. Matching nothing warns and lists what was available.
+Each value is matched as a literal substring of \`displayId\`, which is
+how \`"B4"\` picks out \`...\_SR_B4\` without you writing the whole
+name. Nothing is treated as pattern syntax, so a value containing
+punctuation matches itself. See \`\$bands()\` for the values. Matching
+nothing warns and lists what was available.
 
 Like \`\$select_products()\`, this selects afresh from everything
 available at that granularity rather than narrowing an existing
@@ -166,26 +169,32 @@ Switch the selection to whole products rather than the individual files
 inside them, optionally keeping only those whose \`productName\` matches
 one of the given patterns.
 
-Patterns are matched against \`productName\`, whose values come from
-\`\$scene_products()\`. They differ between datasets - the bundle is
-"Landsat Collection 2 Level-2 Product Bundle" for \`landsat_ot_c2_l2\`
-but "Standard Format" for \`corona2\` - so check \`\$scene_products()\`
-rather than reusing a pattern from another dataset. Matching nothing
+Values are matched \*\*exactly\*\*, against either \`productName\` or
+\`productCode\`, so a value copied out of \`\$scene_products()\` selects
+what you copied. Names contain characters such as parentheses that would
+otherwise be read as pattern syntax, and they differ between datasets -
+the bundle is "Landsat Collection 2 Level-2 Product Bundle" for
+\`landsat_ot_c2_l2\` but "Standard Format" for \`corona2\` - so read
+them off \`\$scene_products()\` rather than assuming. Matching nothing
 warns and lists what was available.
+
+For anything looser, chain \`\$filter()\`, which takes arbitrary
+expressions: \`\$select_products()\$filter(grepl("Browse",
+productName))\`.
 
 As with \`\$select_bands()\` this does not filter on availability; chain
 \`\$filter(available)\` to drop products the API has marked unavailable.
 
 #### Usage
 
-    M2MDownloadOptions$select_products(patterns = NULL)
+    M2MDownloadOptions$select_products(products = NULL)
 
 #### Arguments
 
-- `patterns`:
+- `products`:
 
-  An optional character vector of patterns to match against
-  \`productName\`, e.g. \`"Product Bundle"\`.
+  An optional character vector of \`productName\` or \`productCode\`
+  values, matched exactly.
 
 #### Returns
 

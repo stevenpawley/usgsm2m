@@ -187,8 +187,11 @@ bands nested in a `secondaryDownloads` list-column.</p></dd>
 <h3 id="m-mdownloadoptions-select-bands-"><code>M2MDownloadOptions$select_bands()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadoptions-select-bands-"></a></h3>
 <p>Select the individual files whose `displayId` matches any
   of the given patterns.</p>
-<p>Patterns are matched against `displayId`, whose values you can see in
-  `$bands()`. Matching nothing warns and lists what was available.</p>
+<p>Each value is matched as a literal substring of `displayId`, which is
+  how `"B4"` picks out `..._SR_B4` without you writing the whole name.
+  Nothing is treated as pattern syntax, so a value containing
+  punctuation matches itself. See `$bands()` for the values. Matching
+  nothing warns and lists what was available.</p>
 <p>Like `$select_products()`, this selects afresh from everything
   available at that granularity rather than narrowing an existing
   selection - use `$filter()` to narrow. It also does not filter on
@@ -215,22 +218,27 @@ bands nested in a `secondaryDownloads` list-column.</p></dd>
 <p>Switch the selection to whole products rather than the
   individual files inside them, optionally keeping only those whose
   `productName` matches one of the given patterns.</p>
-<p>Patterns are matched against `productName`, whose values come from
-  `$scene_products()`. They differ between datasets - the bundle is
-  "Landsat Collection 2 Level-2 Product Bundle" for `landsat_ot_c2_l2`
-  but "Standard Format" for `corona2` - so check `$scene_products()`
-  rather than reusing a pattern from another dataset. Matching nothing
-  warns and lists what was available.</p>
+<p>Values are matched **exactly**, against either `productName` or
+  `productCode`, so a value copied out of `$scene_products()` selects
+  what you copied. Names contain characters such as parentheses that
+  would otherwise be read as pattern syntax, and they differ between
+  datasets - the bundle is "Landsat Collection 2 Level-2 Product
+  Bundle" for `landsat_ot_c2_l2` but "Standard Format" for `corona2` -
+  so read them off `$scene_products()` rather than assuming. Matching
+  nothing warns and lists what was available.</p>
+<p>For anything looser, chain `$filter()`, which takes arbitrary
+  expressions:
+  `$select_products()$filter(grepl("Browse", productName))`.</p>
 <p>As with `$select_bands()` this does not filter on availability;
   chain `$filter(available)` to drop products the API has marked
   unavailable.</p><div class="section">
 <h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadOptions</span><span class="op">$</span><span class="fu">select_products</span><span class="op">(</span>patterns <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadOptions</span><span class="op">$</span><span class="fu">select_products</span><span class="op">(</span>products <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-2">Arguments<a class="anchor" aria-label="anchor" href="#arguments-2"></a></h4>
-<p></p><div class="arguments"><dl><dt><code>patterns</code></dt>
-<dd><p>An optional character vector of patterns to match
-against `productName`, e.g. `"Product Bundle"`.</p></dd>
+<p></p><div class="arguments"><dl><dt><code>products</code></dt>
+<dd><p>An optional character vector of `productName` or
+`productCode` values, matched exactly.</p></dd>
 
 
 </dl><p></p></div>

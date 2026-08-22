@@ -30,13 +30,24 @@
   the API appending, which was easy to get wrong and gave no hint that
   it was accumulating.
 
-- `$select_products()` and `$select_bands()` now warn when a pattern
-  matches nothing, listing what was available. Product names are not
-  standardised across the catalogue — the bundle is “Landsat Collection
-  2 Level-2 Product Bundle” for `landsat_ot_c2_l2` but “Standard Format”
-  for `corona2` — so a pattern carried over from another dataset used to
-  select an empty set silently, surfacing later as an unexplained “No
-  products selected”.
+- `$select_products()` now matches **exactly**, against `productName` or
+  `productCode`, rather than as a pattern. It previously used a regular
+  expression, so a name copied straight out of `$scene_products()` could
+  match nothing: `"Full-Resolution Browse (Natural Color) GeoTIFF"` is
+  present in the tibble, but its parentheses were read as regex groups.
+  Chain `$filter()` for looser selection, e.g.
+  `$select_products()$filter(grepl("Bundle", productName))`.
+
+- `$select_bands()` matches literal substrings rather than regular
+  expressions, so `"B4"` still picks out `..._SR_B4` but punctuation in
+  a value is no longer read as pattern syntax.
+
+- Both selectors now warn when nothing matches, listing what was
+  available. Product names are not standardised across the catalogue —
+  the bundle is “Landsat Collection 2 Level-2 Product Bundle” for
+  `landsat_ot_c2_l2` but “Standard Format” for `corona2` — so a value
+  carried over from another dataset used to select an empty set
+  silently, surfacing later as an unexplained “No products selected”.
 
 - Authorisation failures now raise a `m2m_no_access` condition, a
   subclass of `m2m_api_error`, so they can be caught separately from

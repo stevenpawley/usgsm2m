@@ -395,7 +395,8 @@ so they appear only in <code>$scene_products()</code>.</p>
 <code class="sourceCode R"><span><span class="va">opts</span> <span class="op">&lt;-</span> <span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">opts</span><span class="op">$</span><span class="fu">select_bands</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4"</span>, <span class="st">"B5"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">bulkAvailable</span><span class="op">)</span>   <span class="co"># 6 separate .TIFs</span></span>
-<span><span class="va">opts</span><span class="op">$</span><span class="fu">select_products</span><span class="op">(</span><span class="st">"Product Bundle"</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">available</span><span class="op">)</span> <span class="co"># 1 .tar per scene</span></span></code></pre></div>
+<span><span class="va">opts</span><span class="op">$</span><span class="fu">select_products</span><span class="op">(</span><span class="st">"Landsat Collection 2 Level-2 Product Bundle"</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">filter</span><span class="op">(</span><span class="va">available</span><span class="op">)</span>                                      <span class="co"># 1 .tar per scene</span></span></code></pre></div>
 <p><code>$selected()</code> always shows what <code>$request()</code>
 will queue. Neither selector filters on availability, because the API
 lists superseded products with <code>available = FALSE</code> and
