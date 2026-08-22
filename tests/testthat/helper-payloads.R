@@ -89,6 +89,7 @@ fake_product <- function(entity_id, product_name, n_files = 2, file_ids = NULL) 
     entityId = entity_id,
     displayId = entity_id,
     productName = product_name,
+    productCode = paste0("PC_", gsub("[^A-Za-z0-9]", "", product_name)),
     available = TRUE,
     bulkAvailable = TRUE,
     filesize = 2048L,

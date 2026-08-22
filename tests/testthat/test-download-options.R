@@ -67,7 +67,9 @@ test_that("select_products switches the selection to whole products", {
 
   opts <- tm_options()
 
-  bundle <- opts$select_products("Product Bundle")$filter(available)
+  bundle <- opts$
+    select_products("Landsat Collection 2 Level-1 Product Bundle")$
+    filter(available)
 
   expect_s3_class(bundle, "M2MDownloadOptions")
   expect_gt(nrow(bundle$selected()), 0)
@@ -77,7 +79,7 @@ test_that("select_products switches the selection to whole products", {
   # a bundle is one row per scene, unlike the many files $bands() lists
   expect_lt(nrow(bundle$selected()), nrow(opts$bands()))
 
-  browse <- opts$select_products("Browse")
+  browse <- opts$select_products()$filter(grepl("Browse", productName))
   expect_gt(nrow(browse$selected()), 0)
   expect_true(all(grepl("Browse", browse$selected()$productName)))
 })
@@ -88,7 +90,9 @@ test_that("select_bands and select_products each select from their own set", {
   opts <- tm_options()
 
   # selecting products then bands must not leave the product rows behind
-  reselected <- opts$select_products("Browse")$select_bands("B1")
+  reselected <- opts$
+    select_products()$filter(grepl("Browse", productName))$
+    select_bands("B1")
 
   expect_gt(nrow(reselected$selected()), 0)
   expect_true(all(grepl("B1", reselected$selected()$displayId)))

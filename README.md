@@ -140,12 +140,17 @@ unique(opts$scene_products()$productName)
 #> [2] "Landsat Collection 2 Level-2 Band File"
 
 queue <- opts$
-  select_products("Product Bundle")$
+  select_products("Landsat Collection 2 Level-2 Product Bundle")$
   filter(available)$
   request(label = "bundles")
 ```
 
-`$selected()` shows exactly what `$request()` will queue, either way. A pattern
+Products are matched **exactly**, against `productName` or `productCode`, so a
+value copied out of that listing selects what you copied. For looser matching
+chain `$filter()`, which takes any expression:
+`$select_products()$filter(grepl("Bundle", productName))`.
+
+`$selected()` shows exactly what `$request()` will queue, either way. A value
 that matches nothing warns and lists what was available, rather than quietly
 selecting an empty set.
 

@@ -304,7 +304,8 @@ Pick a granularity with the matching selector, then narrow with `$filter()`:
 opts <- found$products()
 
 opts$select_bands(c("B4", "B5"))$filter(bulkAvailable)   # 6 separate .TIFs
-opts$select_products("Product Bundle")$filter(available) # 1 .tar per scene
+opts$select_products("Landsat Collection 2 Level-2 Product Bundle")$
+  filter(available)                                      # 1 .tar per scene
 ```
 
 `$selected()` always shows what `$request()` will queue. Neither selector

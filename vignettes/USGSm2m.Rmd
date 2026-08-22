@@ -204,8 +204,9 @@ opts$bands()
 ```
 
 A Landsat scene has dozens of associated files, so you will usually want a
-subset. `$select_bands()` matches against `displayId`, and `$filter()` accepts
-Remselection intact:
+subset. `$select_bands()` matches literal substrings of `displayId`, which is
+how `"B4"` picks out `..._SR_B4`, and `$filter()` accepts arbitrary `dplyr`
+expressions. Both return a new object, leaving the original selection intact:
 
 ```{r}
 selected <- opts$
@@ -239,18 +240,25 @@ files — for one `.tar` per scene rather than 19 separate downloads:
 
 ```{r}
 bundles <- opts$
-  select_products("Product Bundle")$
+  select_products("Landsat Collection 2 Level-1 Product Bundle")$
   filter(available)
 
 bundles$request(label = "bundles_2020")
 ```
 
-The `"Product Bundle"` here is a pattern matched against the `productName`
-column above — that listing is where the names come from. They are not
-standardised across the catalogue: the bundle is "Landsat Collection 2
-Level-1 Product Bundle" for this dataset and "Standard Format" for `corona2`,
-so check `$scene_products()` rather than reusing a pattern from elsewhere. A
-pattern matching nothing warns and lists what was available.
+That name is matched **exactly**, against `productName` or `productCode`, so
+it is a value copied straight out of the listing above. Names are not
+standardised across the catalogue — the bundle is "Landsat Collection 2
+Level-1 Product Bundle" here and "Standard Format" for `corona2` — and they
+contain characters like parentheses that pattern matching would misread, so
+read them off `$scene_products()` rather than guessing. A value matching
+nothing warns and lists what was available.
+
+For looser selection, chain `$filter()` with any expression you like:
+
+```{r}
+opts$select_products()$filter(grepl("Browse", productName))
+```
 
 Note the `available` filter too: the API lists superseded products with
 `available = FALSE`, and requesting one will fail. As with `$select_bands()`,

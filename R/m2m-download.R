@@ -77,8 +77,11 @@ M2MDownloadOptions <- R6::R6Class(
     #' @description Select the individual files whose `displayId` matches any
     #'   of the given patterns.
     #'
-    #'   Patterns are matched against `displayId`, whose values you can see in
-    #'   `$bands()`. Matching nothing warns and lists what was available.
+    #'   Each value is matched as a literal substring of `displayId`, which is
+    #'   how `"B4"` picks out `..._SR_B4` without you writing the whole name.
+    #'   Nothing is treated as pattern syntax, so a value containing
+    #'   punctuation matches itself. See `$bands()` for the values. Matching
+    #'   nothing warns and lists what was available.
     #'
     #'   Like `$select_products()`, this selects afresh from everything
     #'   available at that granularity rather than narrowing an existing
@@ -90,13 +93,17 @@ M2MDownloadOptions <- R6::R6Class(
     select_bands = function(patterns) {
       all_bands <- private$flatten_bands(self$products)
 
-      matched <- dplyr::filter(
-        all_bands,
-        stringr::str_detect(
-          .data$displayId,
-          stringr::str_c(patterns, collapse = "|")
-        )
+      # stringr::fixed() rather than a regex: displayIds and the values people
+      # paste in can contain punctuation, and a value should match itself
+      # rather than being read as pattern syntax.
+      hits <- Reduce(
+        `|`,
+        lapply(patterns, function(p) {
+          stringr::str_detect(all_bands$displayId, stringr::fixed(p))
+        })
       )
+
+      matched <- all_bands[hits, , drop = FALSE]
 
       if (nrow(matched) == 0 && nrow(all_bands) > 0) {
         m2m_warn_no_match(patterns, "file names", all_bands$displayId)
@@ -109,33 +116,37 @@ M2MDownloadOptions <- R6::R6Class(
     #'   individual files inside them, optionally keeping only those whose
     #'   `productName` matches one of the given patterns.
     #'
-    #'   Patterns are matched against `productName`, whose values come from
-    #'   `$scene_products()`. They differ between datasets - the bundle is
-    #'   "Landsat Collection 2 Level-2 Product Bundle" for `landsat_ot_c2_l2`
-    #'   but "Standard Format" for `corona2` - so check `$scene_products()`
-    #'   rather than reusing a pattern from another dataset. Matching nothing
-    #'   warns and lists what was available.
+    #'   Values are matched **exactly**, against either `productName` or
+    #'   `productCode`, so a value copied out of `$scene_products()` selects
+    #'   what you copied. Names contain characters such as parentheses that
+    #'   would otherwise be read as pattern syntax, and they differ between
+    #'   datasets - the bundle is "Landsat Collection 2 Level-2 Product
+    #'   Bundle" for `landsat_ot_c2_l2` but "Standard Format" for `corona2` -
+    #'   so read them off `$scene_products()` rather than assuming. Matching
+    #'   nothing warns and lists what was available.
+    #'
+    #'   For anything looser, chain `$filter()`, which takes arbitrary
+    #'   expressions:
+    #'   `$select_products()$filter(grepl("Browse", productName))`.
     #'
     #'   As with `$select_bands()` this does not filter on availability;
     #'   chain `$filter(available)` to drop products the API has marked
     #'   unavailable.
-    #' @param patterns An optional character vector of patterns to match
-    #'   against `productName`, e.g. `"Product Bundle"`.
+    #' @param products An optional character vector of `productName` or
+    #'   `productCode` values, matched exactly.
     #' @return A new [M2MDownloadOptions] with the products selected.
-    select_products = function(patterns = NULL) {
+    select_products = function(products = NULL) {
       rows <- self$scene_products()
 
-      if (!is.null(patterns) && nrow(rows) > 0) {
-        matched <- dplyr::filter(
-          rows,
-          stringr::str_detect(
-            .data$productName,
-            stringr::str_c(patterns, collapse = "|")
-          )
-        )
+      if (!is.null(products) && nrow(rows) > 0) {
+        matched <- rows[
+          rows$productName %in% products | rows$productCode %in% products,
+          ,
+          drop = FALSE
+        ]
 
         if (nrow(matched) == 0) {
-          m2m_warn_no_match(patterns, "product names", rows$productName)
+          m2m_warn_no_match(products, "product names", rows$productName)
         }
 
         rows <- matched

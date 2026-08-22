@@ -206,11 +206,54 @@ test_that("a pattern matching no band warns", {
   expect_warning(opts$select_bands("NOT_A_BAND"), "Nothing matched")
 })
 
+test_that("products are matched exactly, including punctuation", {
+  # a name copied out of $scene_products() must select itself. Under pattern
+  # matching the parentheses were read as regex groups, so the name matched
+  # nothing at all.
+  name <- "Full-Resolution Browse (Natural Color) GeoTIFF"
+  products <- coerce_products(list(
+    fake_product("E1", name, n_files = 0),
+    fake_product("E1", "Standard Format")
+  ))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  expect_equal(nrow(opts$select_products(name)$selected()), 1)
+
+  # and a partial no longer matches, so selection cannot be accidental
+  expect_warning(
+    partial <- opts$select_products("Browse"),
+    "Nothing matched"
+  )
+  expect_equal(nrow(partial$selected()), 0)
+})
+
+test_that("products can be selected by productCode", {
+  products <- coerce_products(list(fake_product("E1", "Standard Format")))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  code <- opts$scene_products()$productCode[[1]]
+  expect_equal(nrow(opts$select_products(code)$selected()), 1)
+})
+
+test_that("bands match literal substrings, not patterns", {
+  products <- coerce_products(list(
+    fake_product("E1", "Bundle", file_ids = c("B1", "B2"))
+  ))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  # substring matching is the point of select_bands
+  expect_equal(nrow(opts$select_bands("B1")$selected()), 1)
+  expect_equal(nrow(opts$select_bands(c("B1", "B2"))$selected()), 2)
+
+  # but regex syntax is not honoured - "." is a literal dot, not "any char"
+  expect_warning(expect_equal(nrow(opts$select_bands("B.")$selected()), 0))
+})
+
 test_that("a matching pattern does not warn", {
   products <- coerce_products(list(fake_product("E1", "Standard Format")))
   opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
 
-  expect_no_warning(opts$select_products("Standard"))
+  expect_no_warning(opts$select_products("Standard Format"))
 })
 
 # --- scene list summary ------------------------------------------------------
