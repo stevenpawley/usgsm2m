@@ -121,8 +121,8 @@ the next call.
 
 ```{r}
 list_id <- "my_unique_id_12345"
-ers_scene_list_add(session, "landsat_ot_c2_l2", scenes, list_id)
-products <- ers_scene_products(session, "landsat_ot_c2_l2", list_id)
+api_scene_list_add(session, "landsat_ot_c2_l2", scenes, list_id)
+products <- api_scene_products(session, "landsat_ot_c2_l2", list_id)
 ```
 
 Three things have to stay consistent there, and each fails in its own way: a

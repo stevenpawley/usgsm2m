@@ -71,7 +71,7 @@ test_that("the auth token goes only to the M2M host", {
       httr2::response(status_code = 200L, body = charToRaw("aa")),
       httr2::response(status_code = 200L, body = charToRaw("bb"))
     ),
-    ers_download_files(session, downloads = downloads, out_dir = dir)
+    api_download_files(session, downloads = downloads, out_dir = dir)
   )
 
   m2m_headers <- names(captured$requests[[1]]$headers)
@@ -94,7 +94,7 @@ test_that("an expired signed URL is reported as expired, not just failed", {
 
   captured <- with_captured_requests(
     list(httr2::response(status_code = 403L, body = charToRaw(""))),
-    ers_download_files(session, downloads = downloads, out_dir = dir)
+    api_download_files(session, downloads = downloads, out_dir = dir)
   )
 
   expect_equal(captured$result$status, "expired")
@@ -109,7 +109,7 @@ test_that("proxied completions are reported with id and downloaded size", {
 
   captured <- with_captured_requests(
     mock_response(data = list()),
-    ers_download_complete_proxied(mock_session(), downloads)
+    api_download_complete_proxied(mock_session(), downloads)
   )
 
   body <- request_body(captured$requests[[1]])
@@ -122,7 +122,7 @@ test_that("proxied completions are reported with id and downloaded size", {
 test_that("reporting nothing makes no request", {
   captured <- with_captured_requests(
     mock_response(data = list()),
-    ers_download_complete_proxied(
+    api_download_complete_proxied(
       mock_session(),
       dplyr::tibble(downloadId = integer(), size = numeric())
     )

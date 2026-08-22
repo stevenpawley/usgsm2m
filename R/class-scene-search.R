@@ -1,3 +1,6 @@
+# Public scene-search and scene-list workflow objects. Transport details live
+# in api-scenes.R and response normalization in coerce-scenes.R.
+
 #' Results of a scene search
 #'
 #' Returned by `M2MDataset$search()`. Holds the matching scenes and is the
@@ -118,8 +121,8 @@ M2MSceneSearch <- R6::R6Class(
 
       list_id <- list_id %||% m2m_new_list_id()
 
-      ers_scene_list_add(
-        m2m_session_handle(private$session_),
+      api_scene_list_add(
+        private$session_$ers_session(),
         dataset_name = private$dataset_$alias(),
         scenes = self$scenes,
         list_id = list_id
@@ -257,20 +260,20 @@ M2MSceneList <- R6::R6Class(
     #' @description The entity ids currently in the list.
     #' @return A tibble of scene entity ids.
     scenes = function() {
-      ers_scene_list_get(m2m_session_handle(private$session_), self$list_id)
+      api_scene_list_get(private$session_$ers_session(), self$list_id)
     },
 
     #' @description Full metadata for every scene in the list.
     #' @return A tibble of scene metadata.
     metadata = function() {
-      ers_scene_metadata_list(m2m_session_handle(private$session_), self$list_id)
+      api_scene_metadata_list(private$session_$ers_session(), self$list_id)
     },
 
     #' @description Summarize the list's spatial and temporal extent, and the
     #'   datasets it spans.
     #' @return A tibble, with overall bounds in the `spatialBounds` attribute.
     summary = function() {
-      ers_scene_list_summary(m2m_session_handle(private$session_), self$list_id)
+      api_scene_list_summary(private$session_$ers_session(), self$list_id)
     },
 
     #' @description Discover the products available for the scenes in this
@@ -278,8 +281,8 @@ M2MSceneList <- R6::R6Class(
     #' @param band_group Whether to include secondary file groups (bands).
     #' @return An [M2MDownloadOptions] object.
     products = function(band_group = TRUE) {
-      products <- ers_scene_products(
-        m2m_session_handle(private$session_),
+      products <- api_scene_products(
+        private$session_$ers_session(),
         # resolve rather than trusting the field: a list reattached by id
         # starts out not knowing its dataset, and sending NA would make
         # download-options fail obscurely
@@ -290,8 +293,7 @@ M2MSceneList <- R6::R6Class(
 
       M2MDownloadOptions$new(
         session = private$session_,
-        products = products,
-        scene_list = self
+        products = products
       )
     },
 
@@ -299,7 +301,7 @@ M2MSceneList <- R6::R6Class(
     #'   expire on their own after a period of inactivity.
     #' @return The scene list, invisibly.
     remove = function() {
-      ers_scene_list_remove(m2m_session_handle(private$session_), self$list_id)
+      api_scene_list_remove(private$session_$ers_session(), self$list_id)
       self$removed <- TRUE
       invisible(self)
     },

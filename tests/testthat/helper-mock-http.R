@@ -9,7 +9,13 @@
 # A session pointing at the real URL but with a placeholder key. No request
 # made with it ever leaves the process.
 mock_session <- function() {
-  m2m_legacy_session("test_api_key", "https://m2m.cr.usgs.gov/api/api/json/stable/")
+  structure(
+    list(
+      api_key = "test_api_key",
+      service = "https://m2m.cr.usgs.gov/api/api/json/stable/"
+    ),
+    class = "ers_session"
+  )
 }
 
 # Build an M2M-shaped JSON response.

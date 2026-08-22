@@ -13,7 +13,7 @@ test_that("entityIds is sent as an array even for a single scene", {
   # HTTP 500 for every single-scene list.
   captured <- with_captured_requests(
     mock_response(data = 1L),
-    ers_scene_list_add(
+    api_scene_list_add(
       mock_session(),
       dataset_name = "landsat_ot_c2_l2",
       scenes = data.frame(entityId = "ONLY_ONE"),
@@ -34,7 +34,7 @@ test_that("entityIds is sent as an array even for a single scene", {
 test_that("several entityIds are still sent as an array", {
   captured <- with_captured_requests(
     mock_response(data = 3L),
-    ers_scene_list_add(
+    api_scene_list_add(
       mock_session(),
       dataset_name = "landsat_ot_c2_l2",
       scenes = data.frame(entityId = c("A", "B", "C")),
@@ -50,7 +50,7 @@ test_that("a single eulaCode is sent as an array", {
   # same auto-unbox trap as entityIds
   captured <- with_captured_requests(
     mock_response(data = list(list(eulaCode = "X", agreementContent = "text"))),
-    ers_download_eula(mock_session(), eula_codes = "SINGLE")
+    api_download_eula(mock_session(), eula_codes = "SINGLE")
   )
 
   body <- request_body(captured$requests[[1]])
@@ -61,7 +61,7 @@ test_that("a single eulaCode is sent as an array", {
 test_that("every authenticated request carries the auth header", {
   captured <- with_captured_requests(
     mock_response(data = list()),
-    ers_download_search(mock_session())
+    api_download_search(mock_session())
   )
 
   headers <- captured$requests[[1]]$headers
@@ -79,7 +79,7 @@ test_that("download requests send entityId and productId pairs", {
     mock_response(data = list(
       availableDownloads = list(), newRecords = list(), duplicateProducts = list()
     )),
-    ers_download_request(mock_session(), downloads = downloads, label = "lbl")
+    api_download_request(mock_session(), downloads = downloads, label = "lbl")
   )
 
   body <- request_body(captured$requests[[1]])
@@ -93,7 +93,7 @@ test_that("download requests send entityId and productId pairs", {
 test_that("scene search sends only the filters it was given", {
   captured <- with_captured_requests(
     mock_response(data = mock_search_page(list(), 0L)),
-    ers_scene_search(
+    api_scene_search(
       mock_session(),
       dataset_name = "landsat_ot_c2_l2",
       temporal_filter = filter_temporal("2020-07-01", "2020-07-31")
@@ -119,7 +119,7 @@ test_that("scene search follows nextRecord across pages", {
 
   captured <- with_captured_requests(
     list(page1, page2),
-    ers_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
+    api_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
   )
 
   expect_equal(captured$n, 2)
@@ -136,7 +136,7 @@ test_that("scene search stops when a page reports no nextRecord", {
     list(mock_response(data = mock_search_page(
       list(fake_scene(1)), total_hits = 99L, next_record = NULL
     ))),
-    ers_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
+    api_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
   )
 
   # totalHits says more exist, but without a nextRecord there is nowhere to go
@@ -150,7 +150,7 @@ test_that("max_results caps the scenes returned", {
       list(fake_scene(1), fake_scene(2), fake_scene(3)),
       total_hits = 10L, next_record = 4L
     ))),
-    ers_scene_search(
+    api_scene_search(
       mock_session(),
       dataset_name = "landsat_ot_c2_l2",
       max_results = 2
@@ -164,7 +164,7 @@ test_that("max_results caps the scenes returned", {
 test_that("an empty search returns an empty tibble, not an error", {
   captured <- with_captured_requests(
     mock_response(data = mock_search_page(list(), 0L)),
-    ers_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
+    api_scene_search(mock_session(), dataset_name = "landsat_ot_c2_l2")
   )
 
   expect_equal(nrow(captured$result$results), 0)
@@ -177,7 +177,7 @@ test_that("an HTTP error raises a classed m2m_http_error", {
   expect_error(
     with_captured_requests(
       mock_response(status = 500L),
-      ers_download_search(mock_session())
+      api_download_search(mock_session())
     ),
     class = "m2m_http_error"
   )
@@ -189,7 +189,7 @@ test_that("an errorCode in a 200 body raises a classed m2m_api_error", {
   expect_error(
     with_captured_requests(
       mock_response(error_code = "AUTH_INVALID", error_message = "bad token"),
-      ers_download_search(mock_session())
+      api_download_search(mock_session())
     ),
     class = "m2m_api_error"
   )
@@ -199,7 +199,7 @@ test_that("the error message carries the API's own explanation", {
   err <- tryCatch(
     with_captured_requests(
       mock_response(error_code = "RATE_LIMIT", error_message = "too many requests"),
-      ers_download_search(mock_session())
+      api_download_search(mock_session())
     ),
     m2m_error = function(e) e
   )
@@ -211,7 +211,7 @@ test_that("the error message carries the API's own explanation", {
 test_that("both error classes inherit from m2m_error", {
   for (resp in list(mock_response(status = 503L), mock_response(error_code = "X"))) {
     err <- tryCatch(
-      with_captured_requests(resp, ers_download_search(mock_session())),
+      with_captured_requests(resp, api_download_search(mock_session())),
       error = function(e) e
     )
     expect_s3_class(err, "m2m_error")
@@ -229,7 +229,7 @@ test_that("an authorisation failure is distinguished from a missing dataset", {
         error_code = "DATASET_AUTH",
         error_message = "Dataset status is unavailable to this user"
       ),
-      ers_dataset(mock_session(), dataset_name = "modis_mod09a1_v61")
+      api_dataset(mock_session(), dataset_name = "modis_mod09a1_v61")
     ),
     m2m_error = function(e) e
   )
@@ -245,7 +245,7 @@ test_that("m2m_no_access still inherits the general error classes", {
   err <- tryCatch(
     with_captured_requests(
       mock_response(error_code = "DATASET_AUTH", error_message = "nope"),
-      ers_dataset(mock_session(), dataset_name = "x")
+      api_dataset(mock_session(), dataset_name = "x")
     ),
     error = function(e) e
   )
@@ -259,7 +259,7 @@ test_that("other error codes are not treated as access failures", {
   err <- tryCatch(
     with_captured_requests(
       mock_response(error_code = "RATE_LIMIT", error_message = "slow down"),
-      ers_dataset(mock_session(), dataset_name = "x")
+      api_dataset(mock_session(), dataset_name = "x")
     ),
     error = function(e) e
   )
@@ -273,7 +273,7 @@ test_that("an unknown dataset is reported as not found", {
   expect_error(
     with_captured_requests(
       mock_response(data = NULL),
-      ers_dataset(mock_session(), dataset_name = "nope")
+      api_dataset(mock_session(), dataset_name = "nope")
     ),
     class = "m2m_not_found"
   )
@@ -292,8 +292,8 @@ test_that("logging in sends the credentials and keeps the key it gets back", {
   expect_equal(body$token, "token")
 
   expect_s3_class(captured$result, "M2MSession")
-  # the key is private, and reached the same way the sibling classes reach it
-  expect_equal(m2m_session_handle(captured$result)$api_key, "an_api_key")
+  # the key is private, and exposed to sibling classes as an ERS session
+  expect_equal(captured$result$ers_session()$api_key, "an_api_key")
 })
 
 test_that("a rejected login raises rather than returning a broken session", {

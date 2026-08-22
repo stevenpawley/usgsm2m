@@ -1,3 +1,6 @@
+# Public product-selection and download-queue workflow objects. Transport
+# details live in api-downloads.R.
+
 #' Products available for download
 #'
 #' Returned by `M2MSceneSearch$products()`. Holds what the M2M API will let
@@ -32,11 +35,9 @@ M2MDownloadOptions <- R6::R6Class(
     #'   instead.
     #' @param session The parent [M2MSession].
     #' @param products A tibble of products from the download-options endpoint.
-    #' @param scene_list The [M2MSceneList] the products belong to.
     #' @param selected An optional pre-narrowed band tibble.
-    initialize = function(session, products, scene_list, selected = NULL) {
+    initialize = function(session, products, selected = NULL) {
       private$session_ <- session
-      private$scene_list_ <- scene_list
       self$products <- products
 
       private$selected_ <- selected %||% private$flatten_bands(products)
@@ -175,8 +176,8 @@ M2MDownloadOptions <- R6::R6Class(
         stop("No products selected to download")
       }
 
-      requested <- ers_download_request(
-        m2m_session_handle(private$session_),
+      requested <- api_download_request(
+        private$session_$ers_session(),
         downloads = private$selected_,
         label = label
       )
@@ -210,7 +211,6 @@ M2MDownloadOptions <- R6::R6Class(
   ),
   private = list(
     session_ = NULL,
-    scene_list_ = NULL,
     selected_ = NULL,
 
     # Flatten the nested per-scene products into one row per downloadable
@@ -239,7 +239,6 @@ M2MDownloadOptions <- R6::R6Class(
       M2MDownloadOptions$new(
         session = private$session_,
         products = self$products,
-        scene_list = private$scene_list_,
         selected = selected
       )
     }
@@ -297,8 +296,8 @@ M2MDownloadQueue <- R6::R6Class(
     #'   `$available` and `$requested`/`$queue_size` are replaced.
     #' @return The queue, invisibly.
     refresh = function() {
-      queue <- ers_download_queue(
-        m2m_session_handle(private$session_),
+      queue <- api_download_queue(
+        private$session_$ers_session(),
         label = self$label
       )
 
@@ -362,8 +361,8 @@ M2MDownloadQueue <- R6::R6Class(
         stop("No downloads are available yet; try $refresh()")
       }
 
-      session <- m2m_session_handle(private$session_)
-      results <- ers_download_files(session, downloads = ready, out_dir = out_dir)
+      session <- private$session_$ers_session()
+      results <- api_download_files(session, downloads = ready, out_dir = out_dir)
 
       if (report_proxied) {
         proxied <- results[
@@ -373,7 +372,7 @@ M2MDownloadQueue <- R6::R6Class(
           ,
           drop = FALSE
         ]
-        ers_download_complete_proxied(session, proxied)
+        api_download_complete_proxied(session, proxied)
       }
 
       results
@@ -388,8 +387,8 @@ M2MDownloadQueue <- R6::R6Class(
     #' @return A list with `label`, `download_count`, `scene_count`,
     #'   `total_estimated_size` and a `collections` tibble.
     summary = function(download_application = "M2M", send_email = FALSE) {
-      ers_download_summary(
-        m2m_session_handle(private$session_),
+      api_download_summary(
+        private$session_$ers_session(),
         label = self$label,
         download_application = download_application,
         send_email = send_email
@@ -406,8 +405,8 @@ M2MDownloadQueue <- R6::R6Class(
     #'   order to.
     #' @return The queue, invisibly.
     prepare = function(download_application = NULL) {
-      ers_download_order_load(
-        m2m_session_handle(private$session_),
+      api_download_order_load(
+        private$session_$ers_session(),
         label = self$label,
         download_application = download_application
       )
@@ -422,8 +421,8 @@ M2MDownloadQueue <- R6::R6Class(
     #' @param quiet Suppress the message shown before a large batch.
     #' @return The queue, invisibly.
     remove_items = function(download_id, quiet = FALSE) {
-      ers_download_remove_items(
-        m2m_session_handle(private$session_),
+      api_download_remove_items(
+        private$session_$ers_session(),
         download_id,
         quiet = quiet
       )
@@ -433,7 +432,7 @@ M2MDownloadQueue <- R6::R6Class(
     #' @description Cancel this order, removing it from the M2M queue.
     #' @return The queue, invisibly.
     cancel = function() {
-      ers_download_remove_order(m2m_session_handle(private$session_), self$label)
+      api_download_remove_order(private$session_$ers_session(), self$label)
       invisible(self)
     },
 

@@ -1,3 +1,5 @@
+# Public dataset workflow object. Transport details belong in api-datasets.R.
+
 #' A dataset in the M2M catalog
 #'
 #' Returned by `M2MSession$dataset()`. Holds a dataset's metadata and is the
@@ -37,7 +39,7 @@ M2MDataset <- R6::R6Class(
     #'   pass to `$search(metadata = )`.
     #' @return A tibble of filter fields.
     filters = function() {
-      ers_dataset_filters(m2m_session_handle(private$session_), self$alias())
+      api_dataset_filters(private$session_$ers_session(), self$alias())
     },
 
     #' @description Search this dataset for scenes. All filters are optional;
@@ -56,8 +58,8 @@ M2MDataset <- R6::R6Class(
       metadata = NULL,
       max_results = NULL
     ) {
-      found <- ers_scene_search(
-        m2m_session_handle(private$session_),
+      found <- api_scene_search(
+        private$session_$ers_session(),
         dataset_name = self$alias(),
         spatial_filter = spatial,
         temporal_filter = temporal,
@@ -87,8 +89,8 @@ M2MDataset <- R6::R6Class(
     #'   default) all are retrieved by paging through results.
     #' @return An [M2MSceneSearch] over the secondary dataset.
     related_scenes = function(entity_id, max_results = NULL) {
-      found <- ers_scene_search_secondary(
-        m2m_session_handle(private$session_),
+      found <- api_scene_search_secondary(
+        private$session_$ers_session(),
         entity_id = entity_id,
         dataset_name = self$alias(),
         max_results = max_results

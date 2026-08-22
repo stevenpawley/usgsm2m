@@ -13,7 +13,7 @@ test_that("a Content-Disposition filename is used", {
   )
 
   expect_equal(
-    m2m_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182"),
+    coerce_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182"),
     "LE07_L2SP_042024_20090701_02_T1.tar"
   )
 })
@@ -26,7 +26,7 @@ test_that("an RFC 5987 filename* is decoded and preferred", {
     )
   )
 
-  expect_equal(m2m_download_name(resp, url = "https://x/y", entityId = "E1"), "LE07 bundle.tar.gz")
+  expect_equal(coerce_download_name(resp, url = "https://x/y", entityId = "E1"), "LE07 bundle.tar.gz")
 })
 
 test_that("a path in the header cannot escape the output directory", {
@@ -35,7 +35,7 @@ test_that("a path in the header cannot escape the output directory", {
     headers = list(`Content-Disposition` = 'attachment; filename="../../etc/passwd"')
   )
 
-  expect_equal(m2m_download_name(resp, url = "https://x/y", entityId = "E1"), "passwd")
+  expect_equal(coerce_download_name(resp, url = "https://x/y", entityId = "E1"), "passwd")
 })
 
 test_that("the served URL supplies the name when there is no header", {
@@ -44,25 +44,25 @@ test_that("the served URL supplies the name when there is no header", {
     url = "https://landsatlook.usgs.gov/data/LE07_SR_B1.TIF?requestSignature=abc"
   )
 
-  expect_equal(m2m_download_name(resp, url = "https://x/y", entityId = "E1"), "LE07_SR_B1.TIF")
+  expect_equal(coerce_download_name(resp, url = "https://x/y", entityId = "E1"), "LE07_SR_B1.TIF")
 })
 
 test_that("a URL with no filename in it is not used", {
-  expect_null(m2m_url_name("https://m2m.cr.usgs.gov/api/api/json/stable/download/12345"))
-  expect_null(m2m_url_name("https://landsatlook.usgs.gov/gen-bundle?id=LE07"))
+  expect_null(coerce_url_name("https://m2m.cr.usgs.gov/api/api/json/stable/download/12345"))
+  expect_null(coerce_url_name("https://landsatlook.usgs.gov/gen-bundle?id=LE07"))
   # the host on its own must not be read as a filename
-  expect_null(m2m_url_name("https://landsatlook.usgs.gov"))
+  expect_null(coerce_url_name("https://landsatlook.usgs.gov"))
 })
 
 test_that("the entityId is the last resort, with a band suffix turned into an extension", {
   resp <- httr2::response(200L, url = "https://m2m.cr.usgs.gov/download/1")
 
   expect_equal(
-    m2m_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182_SR_B1_TIF"),
+    coerce_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182_SR_B1_TIF"),
     "LE70420242009182_SR_B1.TIF"
   )
   expect_equal(
-    m2m_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182"),
+    coerce_download_name(resp, url = "https://m2m.cr.usgs.gov/download/1", entityId = "LE70420242009182"),
     "LE70420242009182"
   )
 })
@@ -83,7 +83,7 @@ test_that("a downloaded bundle is written under its server-supplied name", {
       headers = list(`Content-Disposition` = 'attachment; filename="LE07_L2SP_042024_02_T1.tar"'),
       body = charToRaw("data")
     )),
-    ers_download_files(session, downloads = downloads, out_dir = dir)
+    api_download_files(session, downloads = downloads, out_dir = dir)
   )
 
   expect_equal(basename(captured$result$path), "LE07_L2SP_042024_02_T1.tar")
@@ -102,7 +102,7 @@ test_that("a failed download leaves no partial file behind", {
 
   captured <- with_captured_requests(
     list(httr2::response(403L, body = charToRaw("expired"))),
-    ers_download_files(session, downloads = downloads, out_dir = dir)
+    api_download_files(session, downloads = downloads, out_dir = dir)
   )
 
   expect_equal(captured$result$status, "expired")

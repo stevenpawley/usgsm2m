@@ -1,3 +1,6 @@
+# Public R6 workflow entry point. HTTP endpoint implementations live in the
+# api-*.R files; this class owns authentication and user-visible session state.
+
 #' Connect to the USGS/EROS M2M API
 #'
 #' Authenticates against the M2M API and returns a session object, which is
@@ -84,8 +87,8 @@ M2MSession <- R6::R6Class(
     #' @param id The dataset identifier. Use this or `name`, not both.
     #' @return An [M2MDataset] object.
     dataset = function(name = NULL, id = NULL) {
-      info <- ers_dataset(
-        private$session(),
+      info <- api_dataset(
+        self$ers_session(),
         dataset_id = id,
         dataset_name = name
       )
@@ -101,8 +104,8 @@ M2MSession <- R6::R6Class(
     #' @return A tibble of matching datasets. Pass a `datasetAlias` value from
     #'   the result to `$dataset()` to continue.
     find_datasets = function(pattern, spatial = NULL, temporal = NULL) {
-      ers_dataset_search(
-        private$session(),
+      api_dataset_search(
+        self$ers_session(),
         dataset_name = pattern,
         spatial_filter = spatial,
         temporal_filter = temporal
@@ -121,7 +124,7 @@ M2MSession <- R6::R6Class(
     #'   or label.
     #' @return A tibble of queued downloads.
     downloads = function() {
-      ers_download_search(private$session())
+      api_download_search(self$ers_session())
     },
 
     #' @description Remove individual downloads from the queue, across any
@@ -142,7 +145,7 @@ M2MSession <- R6::R6Class(
     #' @param quiet Suppress the message shown before a large batch.
     #' @return The number of ids submitted, invisibly.
     remove_items = function(download_id, quiet = FALSE) {
-      ers_download_remove_items(private$session(), download_id, quiet = quiet)
+      api_download_remove_items(self$ers_session(), download_id, quiet = quiet)
     },
 
     #' @description List the distinct order labels in the download queue, one
@@ -153,7 +156,7 @@ M2MSession <- R6::R6Class(
     #' @return A tibble with `label`, `downloadCount`, `totalComplete`,
     #'   `downloadSize` and `dateEntered` (epoch milliseconds).
     download_labels = function(download_application = NULL) {
-      ers_download_labels(private$session(), download_application)
+      api_download_labels(self$ers_session(), download_application)
     },
 
     #' @description Retrieve the text of one or more End User License
@@ -163,7 +166,7 @@ M2MSession <- R6::R6Class(
     #' @param codes A character vector of EULA codes. Use this or `code`.
     #' @return A tibble with `eulaCode` and `agreementContent`.
     eula = function(code = NULL, codes = NULL) {
-      ers_download_eula(private$session(), eula_code = code, eula_codes = codes)
+      api_download_eula(self$ers_session(), eula_code = code, eula_codes = codes)
     },
 
     #' @description Attach to a scene list that already exists server-side.
@@ -181,13 +184,27 @@ M2MSession <- R6::R6Class(
       )
     },
 
+    #' @description Return the small session value used by the package's
+    #'   internal HTTP functions. This method is intended for package internals.
+    #' @return An internal `ers_session` object.
+    ers_session = function() {
+      if (is.null(private$api_key)) {
+        stop("This session has been logged out; create a new one with m2m_session()")
+      }
+
+      structure(
+        list(api_key = private$api_key, service = private$service_url),
+        class = "ers_session"
+      )
+    },
+
     #' @description End the session, invalidating its API key. M2M sessions
     #'   also expire on their own after a period of inactivity.
     #' @return The session, invisibly.
     logout = function() {
-      # $session() refuses if this session was already logged out, so a second
+      # $ers_session() refuses if this session was already logged out, so a second
       # call errors rather than quietly re-sending a dead key.
-      session <- private$session()
+      session <- self$ers_session()
 
       resp <- session$service %>%
         httr2::request() %>%
@@ -222,7 +239,7 @@ M2MSession <- R6::R6Class(
     # Exchange credentials for an API key via the login-token endpoint.
     #
     # This is the one endpoint that does not take a session, since it is what
-    # produces one - so it lives here rather than alongside the ers_* transport
+    # produces one - so it lives here rather than alongside the api_* transport
     # functions, whose shared signature it could not follow anyway.
     login = function(username, token) {
       resp <- tryCatch(
@@ -245,22 +262,6 @@ M2MSession <- R6::R6Class(
       }
 
       api_key
-    },
-
-    # The internal endpoint functions take a plain list session; build one
-    # on demand rather than storing a second copy of the credentials.
-    session = function() {
-      if (is.null(private$api_key)) {
-        stop("This session has been logged out; create a new one with m2m_session()")
-      }
-      m2m_legacy_session(private$api_key, private$service_url)
     }
   )
 )
-
-
-# Internal accessor so sibling R6 classes can borrow a session's credentials
-# without exposing the API key on the public interface.
-m2m_session_handle <- function(session) {
-  session$.__enclos_env__$private$session()
-}

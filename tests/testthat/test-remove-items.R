@@ -7,7 +7,7 @@
 test_that("one request is made per download id", {
   captured <- with_captured_requests(
     list(mock_response(), mock_response(), mock_response()),
-    ers_download_remove_items(mock_session(), c(1L, 2L, 3L))
+    api_download_remove_items(mock_session(), c(1L, 2L, 3L))
   )
 
   expect_equal(captured$n, 3)
@@ -20,7 +20,7 @@ test_that("one request is made per download id", {
 test_that("downloadId is sent as a scalar, not an array", {
   captured <- with_captured_requests(
     list(mock_response()),
-    ers_download_remove_items(mock_session(), 42L)
+    api_download_remove_items(mock_session(), 42L)
   )
 
   # an array under this key is rejected with INPUT_PARAMETER_INVALID
@@ -32,7 +32,7 @@ test_that("downloadId is sent as a scalar, not an array", {
 test_that("duplicate and missing ids are dropped before sending", {
   captured <- with_captured_requests(
     list(mock_response(), mock_response()),
-    ers_download_remove_items(mock_session(), c(7L, 7L, NA_integer_, 8L))
+    api_download_remove_items(mock_session(), c(7L, 7L, NA_integer_, 8L))
   )
 
   expect_equal(captured$n, 2)
@@ -44,7 +44,7 @@ test_that("removing nothing makes no request", {
   for (empty in list(integer(), NA_integer_, NULL)) {
     captured <- with_captured_requests(
       mock_response(),
-      ers_download_remove_items(mock_session(), empty)
+      api_download_remove_items(mock_session(), empty)
     )
     expect_equal(captured$n, 0)
     expect_equal(captured$result, 0L)
@@ -57,7 +57,7 @@ test_that("a large batch says how many items it is removing", {
   expect_message(
     with_captured_requests(
       responses,
-      ers_download_remove_items(mock_session(), seq_len(30))
+      api_download_remove_items(mock_session(), seq_len(30))
     ),
     "Removing 30 items"
   )
@@ -69,7 +69,7 @@ test_that("a large batch can be silenced", {
   expect_no_message(
     with_captured_requests(
       responses,
-      ers_download_remove_items(mock_session(), seq_len(30), quiet = TRUE)
+      api_download_remove_items(mock_session(), seq_len(30), quiet = TRUE)
     )
   )
 })
@@ -78,7 +78,7 @@ test_that("a failure on one id is raised rather than swallowed", {
   expect_error(
     with_captured_requests(
       list(mock_response(), mock_response(error_code = "INPUT_PARAMETER_INVALID")),
-      ers_download_remove_items(mock_session(), c(1L, 2L))
+      api_download_remove_items(mock_session(), c(1L, 2L))
     ),
     class = "m2m_api_error"
   )

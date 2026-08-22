@@ -146,7 +146,7 @@ test_that("products with and without secondary downloads coexist", {
 
   expect_equal(nrow(products), 3)
 
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
   expect_s3_class(opts$bands(), "tbl_df")
   expect_gt(nrow(opts$bands()), 0)
 })
@@ -160,7 +160,7 @@ test_that("files repeated across products are counted once", {
   ))
 
   bands <- M2MDownloadOptions$new(
-    session = NULL, products = products, scene_list = NULL
+    session = NULL, products = products
   )$bands()
 
   expect_equal(nrow(bands), 2)
@@ -173,7 +173,7 @@ test_that("scene_products exposes products that have no files", {
     fake_product("E1", "Browse", n_files = 0)
   ))
 
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   unreachable <- setdiff(opts$scene_products()$id, opts$bands()$id)
   expect_gt(length(unreachable), 0)
@@ -189,7 +189,7 @@ test_that("a pattern matching no product warns and lists what was there", {
   # for Landsat but "Standard Format" for corona2 - so a pattern carried over
   # from elsewhere selects nothing, and used to do so silently
   products <- coerce_products(list(fake_product("E1", "Standard Format")))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   expect_warning(
     narrowed <- opts$select_products("Product Bundle"),
@@ -201,7 +201,7 @@ test_that("a pattern matching no product warns and lists what was there", {
 
 test_that("a pattern matching no band warns", {
   products <- coerce_products(list(fake_product("E1", "Bundle", file_ids = c("B1", "B2"))))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   expect_warning(opts$select_bands("NOT_A_BAND"), "Nothing matched")
 })
@@ -215,7 +215,7 @@ test_that("products are matched exactly, including punctuation", {
     fake_product("E1", name, n_files = 0),
     fake_product("E1", "Standard Format")
   ))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   expect_equal(nrow(opts$select_products(name)$selected()), 1)
 
@@ -229,7 +229,7 @@ test_that("products are matched exactly, including punctuation", {
 
 test_that("products can be selected by productCode", {
   products <- coerce_products(list(fake_product("E1", "Standard Format")))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   code <- opts$scene_products()$productCode[[1]]
   expect_equal(nrow(opts$select_products(code)$selected()), 1)
@@ -239,7 +239,7 @@ test_that("bands match literal substrings, not patterns", {
   products <- coerce_products(list(
     fake_product("E1", "Bundle", file_ids = c("B1", "B2"))
   ))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   # substring matching is the point of select_bands
   expect_equal(nrow(opts$select_bands("B1")$selected()), 1)
@@ -251,7 +251,7 @@ test_that("bands match literal substrings, not patterns", {
 
 test_that("a matching pattern does not warn", {
   products <- coerce_products(list(fake_product("E1", "Standard Format")))
-  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+  opts <- M2MDownloadOptions$new(session = NULL, products = products)
 
   expect_no_warning(opts$select_products("Standard Format"))
 })
@@ -299,11 +299,11 @@ test_that("an unknown scene list summarizes empty rather than erroring", {
 
 # --- shared helpers ----------------------------------------------------------
 
-test_that("m2m_records_to_tibble handles empty and populated input", {
-  expect_equal(nrow(m2m_records_to_tibble(list())), 0)
-  expect_equal(nrow(m2m_records_to_tibble(NULL)), 0)
+test_that("coerce_records handles empty and populated input", {
+  expect_equal(nrow(coerce_records(list())), 0)
+  expect_equal(nrow(coerce_records(NULL)), 0)
 
-  populated <- m2m_records_to_tibble(list(
+  populated <- coerce_records(list(
     list(a = 1L, b = "x"),
     list(a = 2L, b = "y")
   ))
