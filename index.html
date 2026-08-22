@@ -145,14 +145,19 @@
 <span><span class="co">#&gt;   Next:      $retrieve(out_dir)</span></span>
 <span></span>
 <span><span class="va">queue</span><span class="op">$</span><span class="fu">retrieve</span><span class="op">(</span><span class="st">"data/"</span><span class="op">)</span></span></code></pre></div>
-<p>To take whole products instead — one <code>.tar</code> per scene rather than many separate files — swap the selector:</p>
+<p>To take whole products instead — one <code>.tar</code> per scene rather than many separate files — swap the selector. The names to match come from <code>$scene_products()</code>, and differ between datasets, so look before you pick:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">queue</span> <span class="op">&lt;-</span> <span class="va">found</span><span class="op">$</span></span>
-<span>  <span class="fu">products</span><span class="op">(</span><span class="op">)</span><span class="op">$</span></span>
+<code class="sourceCode R"><span><span class="va">opts</span> <span class="op">&lt;-</span> <span class="va">found</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">opts</span><span class="op">$</span><span class="fu">scene_products</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">productName</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Landsat Collection 2 Level-2 Product Bundle"</span></span>
+<span><span class="co">#&gt; [2] "Landsat Collection 2 Level-2 Band File"</span></span>
+<span></span>
+<span><span class="va">queue</span> <span class="op">&lt;-</span> <span class="va">opts</span><span class="op">$</span></span>
 <span>  <span class="fu">select_products</span><span class="op">(</span><span class="st">"Product Bundle"</span><span class="op">)</span><span class="op">$</span></span>
 <span>  <span class="fu">filter</span><span class="op">(</span><span class="va">available</span><span class="op">)</span><span class="op">$</span></span>
 <span>  <span class="fu">request</span><span class="op">(</span>label <span class="op">=</span> <span class="st">"bundles"</span><span class="op">)</span></span></code></pre></div>
-<p><code>$selected()</code> shows exactly what <code>$request()</code> will queue, either way.</p>
+<p><code>$selected()</code> shows exactly what <code>$request()</code> will queue, either way. A pattern that matches nothing warns and lists what was available, rather than quietly selecting an empty set.</p>
 <p>Files the distribution system cannot serve immediately are prepared in the background. When <code>$is_ready()</code> is <code>FALSE</code>, poll with <code>$refresh()</code> — it adds newly ready files to <code>$available</code> in place:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>

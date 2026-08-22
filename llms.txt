@@ -133,18 +133,27 @@ queue$retrieve("data/")
 ```
 
 To take whole products instead — one `.tar` per scene rather than many
-separate files — swap the selector:
+separate files — swap the selector. The names to match come from
+`$scene_products()`, and differ between datasets, so look before you
+pick:
 
 ``` r
 
-queue <- found$
-  products()$
+opts <- found$products()
+
+unique(opts$scene_products()$productName)
+#> [1] "Landsat Collection 2 Level-2 Product Bundle"
+#> [2] "Landsat Collection 2 Level-2 Band File"
+
+queue <- opts$
   select_products("Product Bundle")$
   filter(available)$
   request(label = "bundles")
 ```
 
-`$selected()` shows exactly what `$request()` will queue, either way.
+`$selected()` shows exactly what `$request()` will queue, either way. A
+pattern that matches nothing warns and lists what was available, rather
+than quietly selecting an empty set.
 
 Files the distribution system cannot serve immediately are prepared in
 the background. When `$is_ready()` is `FALSE`, poll with `$refresh()` —

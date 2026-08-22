@@ -187,6 +187,8 @@ bands nested in a `secondaryDownloads` list-column.</p></dd>
 <h3 id="m-mdownloadoptions-select-bands-"><code>M2MDownloadOptions$select_bands()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadoptions-select-bands-"></a></h3>
 <p>Select the individual files whose `displayId` matches any
   of the given patterns.</p>
+<p>Patterns are matched against `displayId`, whose values you can see in
+  `$bands()`. Matching nothing warns and lists what was available.</p>
 <p>Like `$select_products()`, this selects afresh from everything
   available at that granularity rather than narrowing an existing
   selection - use `$filter()` to narrow. It also does not filter on
@@ -213,6 +215,12 @@ bands nested in a `secondaryDownloads` list-column.</p></dd>
 <p>Switch the selection to whole products rather than the
   individual files inside them, optionally keeping only those whose
   `productName` matches one of the given patterns.</p>
+<p>Patterns are matched against `productName`, whose values come from
+  `$scene_products()`. They differ between datasets - the bundle is
+  "Landsat Collection 2 Level-2 Product Bundle" for `landsat_ot_c2_l2`
+  but "Standard Format" for `corona2` - so check `$scene_products()`
+  rather than reusing a pattern from another dataset. Matching nothing
+  warns and lists what was available.</p>
 <p>As with `$select_bands()` this does not filter on availability;
   chain `$filter(available)` to drop products the API has marked
   unavailable.</p><div class="section">

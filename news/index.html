@@ -52,6 +52,7 @@
 <span><span class="va">summer</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>Like <code>$filter()</code> it returns a new search and leaves the originals alone, takes several at once, and chains. Scenes found by more than one search are kept once. Previously this meant passing the same <code>list_id</code> to <code>$scene_list()</code> from each search in turn and relying on the API appending, which was easy to get wrong and gave no hint that it was accumulating.</p>
 </li>
+<li><p><code>$select_products()</code> and <code>$select_bands()</code> now warn when a pattern matches nothing, listing what was available. Product names are not standardised across the catalogue — the bundle is “Landsat Collection 2 Level-2 Product Bundle” for <code>landsat_ot_c2_l2</code> but “Standard Format” for <code>corona2</code> — so a pattern carried over from another dataset used to select an empty set silently, surfacing later as an unexplained “No products selected”.</p></li>
 <li><p>Authorisation failures now raise a <code>m2m_no_access</code> condition, a subclass of <code>m2m_api_error</code>, so they can be caught separately from other API errors.</p></li>
 </ul></div>
 <div class="section level3">

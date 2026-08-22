@@ -263,7 +263,15 @@ queue whole products instead of individual files — for one
 <span>  <span class="fu">filter</span><span class="op">(</span><span class="va">available</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">bundles</span><span class="op">$</span><span class="fu">request</span><span class="op">(</span>label <span class="op">=</span> <span class="st">"bundles_2020"</span><span class="op">)</span></span></code></pre></div>
-<p>Note the <code>available</code> filter: the API lists superseded
+<p>The <code>"Product Bundle"</code> here is a pattern matched against
+the <code>productName</code> column above — that listing is where the
+names come from. They are not standardised across the catalogue: the
+bundle is “Landsat Collection 2 Level-1 Product Bundle” for this dataset
+and “Standard Format” for <code>corona2</code>, so check
+<code>$scene_products()</code> rather than reusing a pattern from
+elsewhere. A pattern matching nothing warns and lists what was
+available.</p>
+<p>Note the <code>available</code> filter too: the API lists superseded
 products with <code>available = FALSE</code>, and requesting one will
 fail. As with <code>$select_bands()</code>, neither selector filters on
 availability for you.</p>

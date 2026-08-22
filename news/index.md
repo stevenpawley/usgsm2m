@@ -30,6 +30,14 @@
   the API appending, which was easy to get wrong and gave no hint that
   it was accumulating.
 
+- `$select_products()` and `$select_bands()` now warn when a pattern
+  matches nothing, listing what was available. Product names are not
+  standardised across the catalogue — the bundle is “Landsat Collection
+  2 Level-2 Product Bundle” for `landsat_ot_c2_l2` but “Standard Format”
+  for `corona2` — so a pattern carried over from another dataset used to
+  select an empty set silently, surfacing later as an unexplained “No
+  products selected”.
+
 - Authorisation failures now raise a `m2m_no_access` condition, a
   subclass of `m2m_api_error`, so they can be caught separately from
   other API errors.

@@ -246,7 +246,15 @@ bundles <- opts$
 bundles$request(label = "bundles_2020")
 ```
 
-Note the `available` filter: the API lists superseded products with
+The `"Product Bundle"` here is a pattern matched against the
+`productName` column above — that listing is where the names come from.
+They are not standardised across the catalogue: the bundle is “Landsat
+Collection 2 Level-1 Product Bundle” for this dataset and “Standard
+Format” for `corona2`, so check `$scene_products()` rather than reusing
+a pattern from elsewhere. A pattern matching nothing warns and lists
+what was available.
+
+Note the `available` filter too: the API lists superseded products with
 `available = FALSE`, and requesting one will fail. As with
 `$select_bands()`, neither selector filters on availability for you.
 
