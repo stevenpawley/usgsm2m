@@ -84,45 +84,99 @@ ers_download_queue <- function(session, label = NULL, download_application = NUL
 
 
 # Download files to disk from URLs already obtained from the queue.
+#
+# Returns one row per file with the downloadId carried through where the queue
+# supplied one, and the size actually written, so proxied downloads can be
+# reported back to the API afterwards.
 ers_download_files <- function(session, downloads, out_dir) {
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE)
   }
 
-  results <- purrr::map2(
-    downloads$entityId,
-    downloads$url,
-    function(entityId, url) {
+  service_host <- m2m_url_host(session$service)
+
+  download_ids <- if ("downloadId" %in% names(downloads)) {
+    downloads$downloadId
+  } else {
+    rep(NA_integer_, nrow(downloads))
+  }
+
+  results <- purrr::pmap(
+    list(downloads$entityId, downloads$url, download_ids),
+    function(entityId, url, downloadId) {
       filename <- file.path(out_dir, entityId)
       filename <- gsub("_TIF", ".TIF", filename)
 
-      resp <- session$service %>%
-        httr2::request() %>%
-        httr2::req_url(url) %>%
-        httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+      req <- httr2::request(url) %>%
         httr2::req_retry(max_tries = 5L, backoff = function(x) 30) %>%
-        httr2::req_error(is_error = function(resp) FALSE) %>%
-        httr2::req_perform(path = filename)
+        httr2::req_error(is_error = function(resp) FALSE)
 
-      if (resp$status_code == 200) {
-        tibble::tibble(
+      # Only the M2M API itself gets the session token. Proxied downloads are
+      # served by other USGS hosts on signed URLs, where the signature is the
+      # credential - sending the token there would hand it to a host that
+      # neither needs nor asked for it.
+      if (identical(m2m_url_host(url), service_host)) {
+        req <- httr2::req_headers(req, `X-Auth-Token` = session$api_key)
+      }
+
+      resp <- httr2::req_perform(req, path = filename)
+      status <- httr2::resp_status(resp)
+
+      if (status == 200) {
+        return(tibble::tibble(
           entityId = entityId,
+          downloadId = downloadId,
           url = url,
           path = filename,
+          size = file.size(filename),
           status = "downloaded"
-        )
-      } else {
-        tibble::tibble(
-          entityId = entityId,
-          url = url,
-          path = NA_character_,
-          status = "failed"
-        )
+        ))
       }
+
+      # A signed URL that has expired comes back as 403, which is otherwise an
+      # opaque failure.
+      note <- if (status %in% c(401L, 403L)) "expired" else "failed"
+
+      tibble::tibble(
+        entityId = entityId,
+        downloadId = downloadId,
+        url = url,
+        path = NA_character_,
+        size = NA_real_,
+        status = note
+      )
     }
   )
 
   purrr::list_rbind(results)
+}
+
+
+# Report proxied downloads as complete (download-complete-proxied endpoint).
+#
+# The M2M API does not serve proxied downloads itself, so it cannot observe
+# the transfer; without this they stay in the queue indefinitely.
+ers_download_complete_proxied <- function(session, downloads) {
+  if (nrow(downloads) == 0) {
+    return(invisible(NULL))
+  }
+
+  payload <- downloads %>%
+    dplyr::select(c("downloadId", "size")) %>%
+    setNames(c("downloadId", "downloadedSize")) %>%
+    purrr::transpose()
+
+  resp <- session$service %>%
+    httr2::request() %>%
+    httr2::req_url_path_append("download-complete-proxied") %>%
+    httr2::req_headers(`X-Auth-Token` = session$api_key) %>%
+    httr2::req_body_json(data = list(proxiedDownloads = payload)) %>%
+    httr2::req_error(is_error = function(resp) FALSE) %>%
+    httr2::req_perform()
+
+  m2m_check_response(resp, "Failed to report completed proxied downloads")
+
+  invisible(NULL)
 }
 
 

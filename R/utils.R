@@ -68,6 +68,13 @@ m2m_new_list_id <- function() {
 }
 
 
+# The host part of a URL, for deciding whether a request is going to the M2M
+# API itself or to one of the hosts it proxies downloads to.
+m2m_url_host <- function(url) {
+  tolower(sub("^[a-z]+://([^/?#]+).*$", "\\1", url))
+}
+
+
 # Convert a list of API records into a tibble, returning an empty tibble
 # for an empty/absent record set.
 m2m_records_to_tibble <- function(records) {

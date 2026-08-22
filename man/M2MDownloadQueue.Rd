@@ -26,6 +26,8 @@ download and which the distribution system is still preparing.
   \itemize{
     \item \href{#method-M2MDownloadQueue-initialize}{\code{M2MDownloadQueue$new()}}
     \item \href{#method-M2MDownloadQueue-refresh}{\code{M2MDownloadQueue$refresh()}}
+    \item \href{#method-M2MDownloadQueue-ready}{\code{M2MDownloadQueue$ready()}}
+    \item \href{#method-M2MDownloadQueue-pending}{\code{M2MDownloadQueue$pending()}}
     \item \href{#method-M2MDownloadQueue-is_ready}{\code{M2MDownloadQueue$is_ready()}}
     \item \href{#method-M2MDownloadQueue-retrieve}{\code{M2MDownloadQueue$retrieve()}}
     \item \href{#method-M2MDownloadQueue-summary}{\code{M2MDownloadQueue$summary()}}
@@ -79,10 +81,46 @@ download and which the distribution system is still preparing.
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-ready"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-ready}{}}}
+\subsection{\code{M2MDownloadQueue$ready()}}{
+  The files that can be downloaded now, from either
+  `$available` or `$requested`.
+
+  Readiness is a matter of having a URL, not of which bucket the API
+  put a row in: proxied downloads are listed under `$requested` but
+  carry a working URL, because they are served by another USGS host
+  rather than staged by the distribution system.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$ready()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A tibble of downloadable files.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-pending"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-pending}{}}}
+\subsection{\code{M2MDownloadQueue$pending()}}{
+  The files still being prepared, which have no URL yet.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$pending()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A tibble of pending files.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-M2MDownloadQueue-is_ready"></a>}}
 \if{latex}{\out{\hypertarget{method-M2MDownloadQueue-is_ready}{}}}
 \subsection{\code{M2MDownloadQueue$is_ready()}}{
-  Whether every requested file is ready to download.
+  Whether every file in the order can be downloaded now.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{M2MDownloadQueue$is_ready()}
@@ -97,23 +135,29 @@ download and which the distribution system is still preparing.
 \if{html}{\out{<a id="method-M2MDownloadQueue-retrieve"></a>}}
 \if{latex}{\out{\hypertarget{method-M2MDownloadQueue-retrieve}{}}}
 \subsection{\code{M2MDownloadQueue$retrieve()}}{
-  Download every currently available file to disk. Call
+  Download every file that has a URL to disk. Call
   `$refresh()` first if `$is_ready()` is `FALSE`.
+
+  Proxied downloads are reported back to the API afterwards, since it
+  does not serve them itself and would otherwise leave them in the
+  queue indefinitely.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{M2MDownloadQueue$retrieve(out_dir)}
+    \preformatted{M2MDownloadQueue$retrieve(out_dir, report_proxied = TRUE)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{out_dir}}{Directory to write files into. Created if missing.}
+      \item{\code{report_proxied}}{Whether to mark proxied downloads complete.}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A tibble with one row per file: `entityId`, `url`, `path` and
-  `status` (`"downloaded"` or `"failed"`).
+    A tibble with one row per file: `entityId`, `downloadId`,
+  `url`, `path`, `size` and `status`. A `status` of `"expired"` means
+  the signed URL is no longer valid - `$refresh()` and retry.
   }
 }
 

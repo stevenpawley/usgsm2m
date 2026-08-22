@@ -267,10 +267,12 @@ queue
 #>   Next:      $retrieve(out_dir)
 ```
 
-Files the distribution system can serve immediately come back with URLs
-attached. Larger or archived products have to be staged first, and those show
-up under `$requested` instead. `$is_ready()` tells you which situation you are
-in, and `$refresh()` re-polls, adding newly ready files to `$available`:
+A file is ready once it has a URL. Some come straight back that way; others
+have to be staged first. Note that the API's own `$available` and `$requested`
+buckets do not map cleanly onto that — proxied downloads sit in `$requested`
+but already carry a working URL — so use `$ready()` and `$pending()`.
+`$is_ready()` tells you whether anything is still staging, and `$refresh()`
+re-polls:
 
 ```{r}
 while (!queue$is_ready()) {

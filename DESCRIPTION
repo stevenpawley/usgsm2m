@@ -33,7 +33,8 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://github.com/stevenpawley/USGSm2m, https://stevenpawley.github.io/USGSm2m/

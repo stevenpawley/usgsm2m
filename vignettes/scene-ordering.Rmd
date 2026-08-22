@@ -77,7 +77,7 @@ Each endpoint maps onto one method:
 | `scene-search` | `$search()` | filters | `M2MSceneSearch` — `$scenes`, `$total_hits` |
 | `scene-list-add` | `$scene_list()` | scenes, dataset | `M2MSceneList` — holds the `listId` |
 | `download-options` | `$products()` | `listId`, dataset | `M2MDownloadOptions` — `$bands()`, `$scene_products()` |
-| `download-request` | `$request(label)` | entityId/productId pairs | `M2MDownloadQueue` — `$available`, `$requested` |
+| `download-request` | `$request(label)` | entityId/productId pairs | `M2MDownloadQueue` — `$ready()`, `$pending()` |
 | `download-retrieve` | `$refresh()` | `label` | updates `$available` in place |
 | (plain HTTP GET) | `$retrieve(dir)` | URLs | tibble of `path` and `status` per file |
 
@@ -303,15 +303,20 @@ filters on availability, because the API lists superseded products with
 
 ## The download queue
 
-`$request()` places an order under a label. What comes back depends on whether
-the distribution system can serve the products immediately:
+`$request()` places an order under a label. A file is ready when it has a URL,
+and how it gets one depends on how USGS serves that product:
 
-* Products already staged return **with URLs**, in `$available`.
-* Anything needing preparation is accepted and reported in `$requested`, with
-  no URL yet.
+* **Served by M2M itself** — appears in `$available` with a URL.
+* **Proxied** — appears in `$requested`, but *also* with a URL. These are
+  hosted elsewhere (`landsatlook.usgs.gov`, for instance) on a signed URL, so
+  M2M hands you the link and steps out of the way. They are immediately
+  downloadable.
+* **Still staging** — appears in `$requested` with no URL yet.
 
-`$is_ready()` tells you which situation you are in. `$refresh()` re-polls and
-adds newly ready files to `$available`:
+Because the API's two buckets do not line up with ready-versus-pending, use
+`$ready()` and `$pending()` rather than reading `$available` and `$requested`
+directly. `$is_ready()` is true when nothing is left staging, and `$refresh()`
+re-polls:
 
 ```{r}
 queue <- opts$select_bands(c("B4", "B5"))$request(label = "ndvi_july_2020")

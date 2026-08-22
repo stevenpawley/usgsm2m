@@ -1,3 +1,24 @@
+# USGSm2m (development version)
+
+## Bug fixes
+
+* Proxied downloads could not be retrieved at all. USGS serves some products
+  from another host (`landsatlook.usgs.gov`, for instance) on a signed URL,
+  and lists those under `$requested` even though they carry a working URL.
+  The queue treated everything in `$requested` as still being prepared, so
+  `$is_ready()` never became `TRUE` and `$retrieve()` refused with "No
+  downloads are available yet". Readiness is now a matter of having a URL,
+  via the new `$ready()` and `$pending()` methods.
+* The M2M session token was sent to whichever host a download URL pointed at.
+  Proxied URLs are self-authenticating and ignore it, so this handed the token
+  to hosts that neither needed nor asked for it. It is now sent only to the
+  M2M API's own host.
+* Proxied downloads are now reported back through `download-complete-proxied`
+  once fetched. The API does not serve them itself and so cannot observe the
+  transfer; without this they stay in the download queue indefinitely.
+* An expired signed URL is reported as `status = "expired"` rather than a bare
+  failure, since the fix is to `$refresh()` and retry.
+
 # USGSm2m 0.2.0
 
 The package is now organised around R6 objects rather than a flat set of

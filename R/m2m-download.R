@@ -277,27 +277,67 @@ M2MDownloadQueue <- R6::R6Class(
       invisible(self)
     },
 
-    #' @description Whether every requested file is ready to download.
-    #' @return `TRUE` if nothing is still being prepared.
-    is_ready = function() {
-      nrow(self$requested) == 0 && (self$queue_size %||% 0) == 0
+    #' @description The files that can be downloaded now, from either
+    #'   `$available` or `$requested`.
+    #'
+    #'   Readiness is a matter of having a URL, not of which bucket the API
+    #'   put a row in: proxied downloads are listed under `$requested` but
+    #'   carry a working URL, because they are served by another USGS host
+    #'   rather than staged by the distribution system.
+    #' @return A tibble of downloadable files.
+    ready = function() {
+      private$with_urls(dplyr::bind_rows(self$available, self$requested))
     },
 
-    #' @description Download every currently available file to disk. Call
+    #' @description The files still being prepared, which have no URL yet.
+    #' @return A tibble of pending files.
+    pending = function() {
+      rows <- dplyr::bind_rows(self$available, self$requested)
+      if (nrow(rows) == 0 || !"url" %in% names(rows)) {
+        return(rows)
+      }
+      rows[!nzchar(rows$url %||% "") | is.na(rows$url), , drop = FALSE]
+    },
+
+    #' @description Whether every file in the order can be downloaded now.
+    #' @return `TRUE` if nothing is still being prepared.
+    is_ready = function() {
+      nrow(self$pending()) == 0 && (self$queue_size %||% 0) == 0
+    },
+
+    #' @description Download every file that has a URL to disk. Call
     #'   `$refresh()` first if `$is_ready()` is `FALSE`.
+    #'
+    #'   Proxied downloads are reported back to the API afterwards, since it
+    #'   does not serve them itself and would otherwise leave them in the
+    #'   queue indefinitely.
     #' @param out_dir Directory to write files into. Created if missing.
-    #' @return A tibble with one row per file: `entityId`, `url`, `path` and
-    #'   `status` (`"downloaded"` or `"failed"`).
-    retrieve = function(out_dir) {
-      if (nrow(self$available) == 0) {
+    #' @return A tibble with one row per file: `entityId`, `downloadId`,
+    #'   `url`, `path`, `size` and `status`. A `status` of `"expired"` means
+    #'   the signed URL is no longer valid - `$refresh()` and retry.
+    #' @param report_proxied Whether to mark proxied downloads complete.
+    retrieve = function(out_dir, report_proxied = TRUE) {
+      ready <- self$ready()
+
+      if (nrow(ready) == 0) {
         stop("No downloads are available yet; try $refresh()")
       }
 
-      ers_download_files(
-        m2m_session_handle(private$session_),
-        downloads = self$available,
-        out_dir = out_dir
-      )
+      session <- m2m_session_handle(private$session_)
+      results <- ers_download_files(session, downloads = ready, out_dir = out_dir)
+
+      if (report_proxied) {
+        proxied <- results[
+          results$status == "downloaded" &
+            !is.na(results$downloadId) &
+            results$downloadId %in% private$proxied_ids(),
+          ,
+          drop = FALSE
+        ]
+        ers_download_complete_proxied(session, proxied)
+      }
+
+      results
     },
 
     #' @description Summarize this order by dataset, via the
@@ -347,8 +387,8 @@ M2MDownloadQueue <- R6::R6Class(
     print = function(...) {
       cat("<M2MDownloadQueue>\n")
       cat("  Label:     ", self$label, "\n", sep = "")
-      cat("  Available: ", format(nrow(self$available), big.mark = ","), " file(s) ready\n", sep = "")
-      cat("  Preparing: ", format(self$queue_size %||% 0, big.mark = ","), "\n", sep = "")
+      cat("  Ready:     ", format(nrow(self$ready()), big.mark = ","), " file(s)\n", sep = "")
+      cat("  Preparing: ", format(nrow(self$pending()), big.mark = ","), "\n", sep = "")
       if (self$is_ready()) {
         m2m_print_next("$retrieve(out_dir)")
       } else {
@@ -359,6 +399,24 @@ M2MDownloadQueue <- R6::R6Class(
   ),
   private = list(
     session_ = NULL,
+
+    # Rows that carry a usable URL.
+    with_urls = function(rows) {
+      if (nrow(rows) == 0 || !"url" %in% names(rows)) {
+        return(tibble::tibble())
+      }
+      rows[nzchar(rows$url %||% "") & !is.na(rows$url), , drop = FALSE]
+    },
+
+    # Downloads the API is not serving itself, which have to be reported
+    # complete once fetched. The queue marks these with a "Proxied" status.
+    proxied_ids = function() {
+      rows <- dplyr::bind_rows(self$available, self$requested)
+      if (nrow(rows) == 0 || !all(c("downloadId", "statusText") %in% names(rows))) {
+        return(integer())
+      }
+      rows$downloadId[grepl("proxied", rows$statusText, ignore.case = TRUE)]
+    },
 
     merge_available = function(existing, incoming) {
       if (nrow(existing) == 0) {
