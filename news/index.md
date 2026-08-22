@@ -2,6 +2,17 @@
 
 ## USGSm2m (development version)
 
+### New
+
+- `M2MSession$remove_items()` and `M2MDownloadQueue$remove_items()`
+  remove individual downloads from the queue, where
+  `M2MDownloadQueue$cancel()` only drops a whole order. Ids come from
+  the `downloadId` column of `$downloads()`, `$ready()` or `$pending()`.
+
+  The API removes one item per request and answers the same way for an
+  id that does not exist, so a successful call is not evidence that
+  anything was removed - check `$downloads()` afterwards.
+
 ### Bug fixes
 
 - Proxied downloads could not be retrieved at all. USGS serves some

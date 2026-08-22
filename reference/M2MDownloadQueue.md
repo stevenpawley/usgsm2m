@@ -42,6 +42,8 @@ download and which the distribution system is still preparing.
 
 - [`M2MDownloadQueue$prepare()`](#method-M2MDownloadQueue-prepare)
 
+- [`M2MDownloadQueue$remove_items()`](#method-M2MDownloadQueue-remove_items)
+
 - [`M2MDownloadQueue$cancel()`](#method-M2MDownloadQueue-cancel)
 
 - [`M2MDownloadQueue$print()`](#method-M2MDownloadQueue-print)
@@ -222,6 +224,34 @@ pick up URLs as they become ready.
 - `download_application`:
 
   Optional application name to scope the order to.
+
+#### Returns
+
+The queue, invisibly.
+
+------------------------------------------------------------------------
+
+### `M2MDownloadQueue$remove_items()`
+
+Remove individual files from this order, leaving the rest of it in
+place. \`\$cancel()\` drops the whole order instead.
+
+Ids come from the \`downloadId\` column of \`\$ready()\` or
+\`\$pending()\`.
+
+#### Usage
+
+    M2MDownloadQueue$remove_items(download_id, quiet = FALSE)
+
+#### Arguments
+
+- `download_id`:
+
+  A vector of download ids.
+
+- `quiet`:
+
+  Suppress the message shown before a large batch.
 
 #### Returns
 

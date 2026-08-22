@@ -40,6 +40,13 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="usgsm2m-development-version">USGSm2m (development version)<a class="anchor" aria-label="anchor" href="#usgsm2m-development-version"></a></h2>
 <div class="section level3">
+<h3 id="new-development-version">New<a class="anchor" aria-label="anchor" href="#new-development-version"></a></h3>
+<ul><li>
+<p><code>M2MSession$remove_items()</code> and <code>M2MDownloadQueue$remove_items()</code> remove individual downloads from the queue, where <code>M2MDownloadQueue$cancel()</code> only drops a whole order. Ids come from the <code>downloadId</code> column of <code>$downloads()</code>, <code>$ready()</code> or <code>$pending()</code>.</p>
+<p>The API removes one item per request and answers the same way for an id that does not exist, so a successful call is not evidence that anything was removed - check <code>$downloads()</code> afterwards.</p>
+</li>
+</ul></div>
+<div class="section level3">
 <h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
 <ul><li>Proxied downloads could not be retrieved at all. USGS serves some products from another host (<code>landsatlook.usgs.gov</code>, for instance) on a signed URL, and lists those under <code>$requested</code> even though they carry a working URL. The queue treated everything in <code>$requested</code> as still being prepared, so <code>$is_ready()</code> never became <code>TRUE</code> and <code>$retrieve()</code> refused with “No downloads are available yet”. Readiness is now a matter of having a URL, via the new <code>$ready()</code> and <code>$pending()</code> methods.</li>
 <li>The M2M session token was sent to whichever host a download URL pointed at. Proxied URLs are self-authenticating and ignore it, so this handed the token to hosts that neither needed nor asked for it. It is now sent only to the M2M API’s own host.</li>

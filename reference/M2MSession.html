@@ -56,6 +56,7 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.</p>
 <li><p><a href="#method-M2MSession-find_datasets"><code>M2MSession$find_datasets()</code></a></p></li>
 <li><p><a href="#method-M2MSession-download_queue"><code>M2MSession$download_queue()</code></a></p></li>
 <li><p><a href="#method-M2MSession-downloads"><code>M2MSession$downloads()</code></a></p></li>
+<li><p><a href="#method-M2MSession-remove_items"><code>M2MSession$remove_items()</code></a></p></li>
 <li><p><a href="#method-M2MSession-download_labels"><code>M2MSession$download_labels()</code></a></p></li>
 <li><p><a href="#method-M2MSession-eula"><code>M2MSession$eula()</code></a></p></li>
 <li><p><a href="#method-M2MSession-scene_list"><code>M2MSession$scene_list()</code></a></p></li>
@@ -169,15 +170,47 @@ one with [m2m_session()] rather than calling `M2MSession$new()` directly.</p>
 
 </div>
 
+<p></p><hr><a id="method-M2MSession-remove_items"></a><div class="section">
+<h3 id="m-msession-remove-items-"><code>M2MSession$remove_items()</code><a class="anchor" aria-label="anchor" href="#m-msession-remove-items-"></a></h3>
+<p>Remove individual downloads from the queue, across any
+  label. Use this to clear out completed or unwanted entries without
+  dropping a whole order the way `M2MDownloadQueue$cancel()` does.</p>
+<p>Ids come from the `downloadId` column of `$downloads()`:</p>
+<p>“`
+  done &lt;- dplyr::filter(sess$downloads(), statusText == "Complete")
+  sess$remove_items(done$downloadId)
+  “`</p>
+<p>The API removes one item per request and answers the same way for an
+  id that does not exist, so a successful call is not evidence that
+  anything was removed - check `$downloads()` afterwards.</p><div class="section">
+<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">remove_items</span><span class="op">(</span><span class="va">download_id</span>, quiet <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div><p></p><div class="section">
+<h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>download_id</code></dt>
+<dd><p>A vector of download ids.</p></dd>
+
+      <dt><code>quiet</code></dt>
+<dd><p>Suppress the message shown before a large batch.</p></dd>
+
+
+</dl><p></p></div>
+</div><p></p><div class="section">
+<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<p>The number of ids submitted, invisibly.</p>
+</div>
+
+</div>
+
 <p></p><hr><a id="method-M2MSession-download_labels"></a><div class="section">
 <h3 id="m-msession-download-labels-"><code>M2MSession$download_labels()</code><a class="anchor" aria-label="anchor" href="#m-msession-download-labels-"></a></h3>
 <p>List the distinct order labels in the download queue, one
   row each. Use this to find an order to reconnect to with
   `$download_queue()` when you no longer remember its label.</p><div class="section">
-<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">download_labels</span><span class="op">(</span>download_application <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
+<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>download_application</code></dt>
 <dd><p>Optional application name to scope the
 listing to.</p></dd>
@@ -185,7 +218,7 @@ listing to.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
 <p>A tibble with `label`, `downloadCount`, `totalComplete`,
   `downloadSize` and `dateEntered` (epoch milliseconds).</p>
 </div>
@@ -197,10 +230,10 @@ listing to.</p></dd>
 <p>Retrieve the text of one or more End User License
   Agreements. Some datasets require a EULA to be accepted (once,
   through the EarthExplorer website) before downloads will succeed.</p><div class="section">
-<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
+<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">eula</span><span class="op">(</span>code <span class="op">=</span> <span class="cn">NULL</span>, codes <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
+<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>code</code></dt>
 <dd><p>A single EULA code. Use this or `codes`, not both.</p></dd>
 
@@ -210,7 +243,7 @@ listing to.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
+<h4 id="returns-6">Returns<a class="anchor" aria-label="anchor" href="#returns-6"></a></h4>
 <p>A tibble with `eulaCode` and `agreementContent`.</p>
 </div>
 
@@ -219,10 +252,10 @@ listing to.</p></dd>
 <p></p><hr><a id="method-M2MSession-scene_list"></a><div class="section">
 <h3 id="m-msession-scene-list-"><code>M2MSession$scene_list()</code><a class="anchor" aria-label="anchor" href="#m-msession-scene-list-"></a></h3>
 <p>Attach to a scene list that already exists server-side.</p><div class="section">
-<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="va">list_id</span>, dataset_name <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>list_id</code></dt>
 <dd><p>The scene list identifier.</p></dd>
 
@@ -235,7 +268,7 @@ datasets.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-6">Returns<a class="anchor" aria-label="anchor" href="#returns-6"></a></h4>
+<h4 id="returns-7">Returns<a class="anchor" aria-label="anchor" href="#returns-7"></a></h4>
 <p>An [M2MSceneList] object.</p>
 </div>
 
@@ -245,10 +278,10 @@ datasets.</p></dd>
 <h3 id="m-msession-logout-"><code>M2MSession$logout()</code><a class="anchor" aria-label="anchor" href="#m-msession-logout-"></a></h3>
 <p>End the session, invalidating its API key. M2M sessions
   also expire on their own after a period of inactivity.</p><div class="section">
-<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-7">Returns<a class="anchor" aria-label="anchor" href="#returns-7"></a></h4>
+<h4 id="returns-8">Returns<a class="anchor" aria-label="anchor" href="#returns-8"></a></h4>
 <p>The session, invisibly.</p>
 </div>
 
@@ -257,10 +290,10 @@ datasets.</p></dd>
 <p></p><hr><a id="method-M2MSession-print"></a><div class="section">
 <h3 id="m-msession-print-"><code>M2MSession$print()</code><a class="anchor" aria-label="anchor" href="#m-msession-print-"></a></h3>
 <p>Print a summary of the session.</p><div class="section">
-<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
+<h4 id="usage-10">Usage<a class="anchor" aria-label="anchor" href="#usage-10"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
+<h4 id="arguments-8">Arguments<a class="anchor" aria-label="anchor" href="#arguments-8"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>Ignored.</p></dd>
 
@@ -273,10 +306,10 @@ datasets.</p></dd>
 <p></p><hr><a id="method-M2MSession-clone"></a><div class="section">
 <h3 id="m-msession-clone-"><code>M2MSession$clone()</code><a class="anchor" aria-label="anchor" href="#m-msession-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-10">Usage<a class="anchor" aria-label="anchor" href="#usage-10"></a></h4>
+<h4 id="usage-11">Usage<a class="anchor" aria-label="anchor" href="#usage-11"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSession</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-8">Arguments<a class="anchor" aria-label="anchor" href="#arguments-8"></a></h4>
+<h4 id="arguments-9">Arguments<a class="anchor" aria-label="anchor" href="#arguments-9"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
 

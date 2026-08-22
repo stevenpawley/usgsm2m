@@ -18,6 +18,8 @@ directly.
 
 - [`M2MSession$downloads()`](#method-M2MSession-downloads)
 
+- [`M2MSession$remove_items()`](#method-M2MSession-remove_items)
+
 - [`M2MSession$download_labels()`](#method-M2MSession-download_labels)
 
 - [`M2MSession$eula()`](#method-M2MSession-eula)
@@ -144,6 +146,41 @@ List every download in the queue, regardless of status or label.
 #### Returns
 
 A tibble of queued downloads.
+
+------------------------------------------------------------------------
+
+### `M2MSession$remove_items()`
+
+Remove individual downloads from the queue, across any label. Use this
+to clear out completed or unwanted entries without dropping a whole
+order the way \`M2MDownloadQueue\$cancel()\` does.
+
+Ids come from the \`downloadId\` column of \`\$downloads()\`:
+
+“\` done \<- dplyr::filter(sess\$downloads(), statusText == "Complete")
+sess\$remove_items(done\$downloadId) “\`
+
+The API removes one item per request and answers the same way for an id
+that does not exist, so a successful call is not evidence that anything
+was removed - check \`\$downloads()\` afterwards.
+
+#### Usage
+
+    M2MSession$remove_items(download_id, quiet = FALSE)
+
+#### Arguments
+
+- `download_id`:
+
+  A vector of download ids.
+
+- `quiet`:
+
+  Suppress the message shown before a large batch.
+
+#### Returns
+
+The number of ids submitted, invisibly.
 
 ------------------------------------------------------------------------
 
