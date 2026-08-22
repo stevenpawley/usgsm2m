@@ -301,36 +301,46 @@ in the same session:</p>
 <code class="sourceCode R"><span><span class="va">found</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"july_2020_candidates"</span><span class="op">)</span></span>
 <span><span class="va">sess</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span><span class="st">"july_2020_candidates"</span><span class="op">)</span></span></code></pre></div>
 <p>Bear in mind that lists expire (see below), so this is useful within
-a working session rather than across days.</p>
+a working session rather than across days. To gather scenes from several
+searches, use <code>$combine()</code> rather than reusing an identifier
+— see below.</p>
 <p><code>$remove()</code> deletes the list from the server when you are
 finished with it.</p>
 </div>
 <div class="section level3">
 <h3 id="combining-several-searches-into-one-set">Combining several searches into one set<a class="anchor" aria-label="anchor" href="#combining-several-searches-into-one-set"></a>
 </h3>
-<p>One search normally means one scene list, so you will not usually
-think about what happens when scenes are added to a list that already
-exists. The exception is when you want scenes from <em>more than
-one</em> search treated as a single set — two date ranges, say, or two
-areas — so that one <code>$products()</code> call and one download order
-covers all of them.</p>
-<p>Give the searches the same <code>list_id</code> and they
-accumulate:</p>
+<p>Sometimes one query cannot express what you want — two separate date
+ranges, say, or two areas — but you still want a single
+<code>$products()</code> call and a single download order to cover all
+of it. <code>$combine()</code> merges searches:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"landsat_ot_c2_l2"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">july</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-07-01"</span>, <span class="st">"2020-07-05"</span><span class="op">)</span>, max_results <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">sept</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-09-01"</span>, <span class="st">"2020-09-05"</span><span class="op">)</span>, max_results <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">july</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-07-01"</span>, <span class="st">"2020-07-05"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sept</span> <span class="op">&lt;-</span> <span class="va">ds</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span>temporal <span class="op">=</span> <span class="fu"><a href="../reference/filter_temporal.html">filter_temporal</a></span><span class="op">(</span><span class="st">"2020-09-01"</span>, <span class="st">"2020-09-05"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">july</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"summer_2020"</span><span class="op">)</span></span>
-<span><span class="va">scenes</span> <span class="op">&lt;-</span> <span class="va">sept</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="st">"summer_2020"</span><span class="op">)</span></span>
+<span><span class="va">summer</span> <span class="op">&lt;-</span> <span class="va">july</span><span class="op">$</span><span class="fu">combine</span><span class="op">(</span><span class="va">sept</span><span class="op">)</span></span>
+<span><span class="va">summer</span></span>
+<span><span class="co">#&gt; &lt;M2MSceneSearch&gt;</span></span>
+<span><span class="co">#&gt;   Dataset: landsat_ot_c2_l2</span></span>
+<span><span class="co">#&gt;   Scenes:  4 of 4 total hits</span></span>
+<span><span class="co">#&gt;   Next:    $products()  |  $filter(...)  |  $scene_list()</span></span>
 <span></span>
-<span><span class="va">scenes</span><span class="op">$</span><span class="fu">scenes</span><span class="op">(</span><span class="op">)</span>      <span class="co"># all four scenes</span></span>
-<span><span class="va">scenes</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span>    <span class="co"># products for the whole set</span></span></code></pre></div>
-<p>Adding <strong>appends</strong> rather than replacing, which is what
-makes this work, and re-adding a scene already in the list is a
-<strong>no-op</strong>, so searches that overlap will not
-double-count.</p>
+<span><span class="va">summer</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Like <code>$filter()</code>, it returns a new search and leaves the
+originals untouched. It takes several at once and chains, so
+<code>july$combine(sept, oct)</code> and
+<code>july$combine(sept)$combine(oct)</code> are the same thing.</p>
+<p>A scene found by more than one search is kept once, so overlapping
+searches do not double-count. All the searches have to be of the same
+dataset, since products are discovered per dataset — combining across
+datasets raises an error rather than producing a set whose
+<code>$products()</code> would be wrong.</p>
+<p>Note that <code>$total_hits</code> on a combined search is simply how
+many scenes it holds. The API’s per-query hit counts describe the
+individual queries and cannot be added up without double-counting, and a
+combined set is not something the API can page through.</p>
 </div>
 <div class="section level3">
 <h3 id="lifetime">Lifetime<a class="anchor" aria-label="anchor" href="#lifetime"></a>

@@ -45,6 +45,13 @@
 <p><code>M2MSession$remove_items()</code> and <code>M2MDownloadQueue$remove_items()</code> remove individual downloads from the queue, where <code>M2MDownloadQueue$cancel()</code> only drops a whole order. Ids come from the <code>downloadId</code> column of <code>$downloads()</code>, <code>$ready()</code> or <code>$pending()</code>.</p>
 <p>The API removes one item per request and answers the same way for an id that does not exist, so a successful call is not evidence that anything was removed - check <code>$downloads()</code> afterwards.</p>
 </li>
+<li>
+<p><code>M2MSceneSearch$combine()</code> merges searches, so one <code>$products()</code> call and one download order can cover scenes found by several queries — two date ranges, say, or two areas:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">summer</span> <span class="op">&lt;-</span> <span class="va">july</span><span class="op">$</span><span class="fu">combine</span><span class="op">(</span><span class="va">sept</span><span class="op">)</span></span>
+<span><span class="va">summer</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Like <code>$filter()</code> it returns a new search and leaves the originals alone, takes several at once, and chains. Scenes found by more than one search are kept once. Previously this meant passing the same <code>list_id</code> to <code>$scene_list()</code> from each search in turn and relying on the API appending, which was easy to get wrong and gave no hint that it was accumulating.</p>
+</li>
 <li><p>Authorisation failures now raise a <code>m2m_no_access</code> condition, a subclass of <code>m2m_api_error</code>, so they can be caught separately from other API errors.</p></li>
 </ul></div>
 <div class="section level3">
@@ -64,7 +71,7 @@
 <p>Getting data out of the M2M API takes several steps that have to happen in a particular order. That order is now expressed by the objects themselves, each stage returning an object whose methods are the valid next steps:</p>
 <pre><code>M2MSession → M2MDataset → M2MSceneSearch → M2MDownloadOptions → M2MDownloadQueue</code></pre>
 <p>Tab-completing <code>$</code> shows only what you can legitimately do from where you are, and every object prints a <code>Next:</code> hint. A whole download now reads as one chain:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sess</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/m2m_session.html">m2m_session</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">queue</span> <span class="op">&lt;-</span> <span class="va">sess</span><span class="op">$</span></span>
@@ -144,7 +151,7 @@
 <div class="section level3">
 <h3 id="errors-0-2-0">Errors<a class="anchor" aria-label="anchor" href="#errors-0-2-0"></a></h3>
 <p>API failures now raise conditions of class <code>m2m_error</code>, with <code>m2m_http_error</code>, <code>m2m_api_error</code> and <code>m2m_not_found</code> subclasses, instead of printing a message and returning <code>NULL</code>. A failed step stops the chain where it failed rather than surfacing later as an unrelated error:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="va">sess</span><span class="op">$</span><span class="fu">dataset</span><span class="op">(</span><span class="st">"not_a_real_dataset"</span><span class="op">)</span>,</span>
 <span>  m2m_not_found <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"No such dataset"</span><span class="op">)</span></span>

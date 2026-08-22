@@ -13,6 +13,23 @@
   id that does not exist, so a successful call is not evidence that
   anything was removed - check `$downloads()` afterwards.
 
+- `M2MSceneSearch$combine()` merges searches, so one `$products()` call
+  and one download order can cover scenes found by several queries — two
+  date ranges, say, or two areas:
+
+  ``` r
+
+  summer <- july$combine(sept)
+  summer$products()
+  ```
+
+  Like `$filter()` it returns a new search and leaves the originals
+  alone, takes several at once, and chains. Scenes found by more than
+  one search are kept once. Previously this meant passing the same
+  `list_id` to `$scene_list()` from each search in turn and relying on
+  the API appending, which was easy to get wrong and gave no hint that
+  it was accumulating.
+
 - Authorisation failures now raise a `m2m_no_access` condition, a
   subclass of `m2m_api_error`, so they can be caught separately from
   other API errors.

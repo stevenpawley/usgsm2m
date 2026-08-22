@@ -24,6 +24,8 @@ the bridge to discovering downloadable products. Not created directly.
 
 - [`M2MSceneSearch$filter()`](#method-M2MSceneSearch-filter)
 
+- [`M2MSceneSearch$combine()`](#method-M2MSceneSearch-combine)
+
 - [`M2MSceneSearch$scene_list()`](#method-M2MSceneSearch-scene_list)
 
 - [`M2MSceneSearch$products()`](#method-M2MSceneSearch-products)
@@ -94,6 +96,31 @@ semantics against the \`scenes\` tibble.
 #### Returns
 
 A new \[M2MSceneSearch\] with the subset applied.
+
+------------------------------------------------------------------------
+
+### `M2MSceneSearch$combine()`
+
+Combine these scenes with those of other searches, so one
+\`\$products()\` call and one download order covers all of them.
+
+Scenes appearing in more than one search are kept once, so searches that
+overlap do not double-count. All the searches must be of the same
+dataset, since a set of products is discovered per dataset.
+
+#### Usage
+
+    M2MSceneSearch$combine(...)
+
+#### Arguments
+
+- `...`:
+
+  Other \[M2MSceneSearch\] objects.
+
+#### Returns
+
+A new \[M2MSceneSearch\] holding every scene.
 
 ------------------------------------------------------------------------
 
