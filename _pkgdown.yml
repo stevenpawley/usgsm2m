@@ -1,4 +1,4 @@
-url: https://stevenpawley.github.io/USGSm2m/
+url: https://stevenpawley.github.io/usgsm2m/
 
 template:
   bootstrap: 5
@@ -37,12 +37,12 @@ reference:
 
 - title: Package
   contents:
-  - USGSm2m-package
+  - usgsm2m-package
   - "%>%"
 
 articles:
 - title: Guides
   navbar: ~
   contents:
-  - USGSm2m
+  - usgsm2m
   - scene-ordering

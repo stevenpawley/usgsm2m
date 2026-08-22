@@ -1,7 +1,7 @@
-# USGSm2m
+# usgsm2m
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/stevenpawley/USGSm2m/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/stevenpawley/USGSm2m/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/stevenpawley/usgsm2m/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/stevenpawley/usgsm2m/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
@@ -10,7 +10,7 @@ R interface to the USGS/EROS Machine-to-Machine (M2M) API.
 This package is not affiliated with the USGS/EROS. It is a community-developed
 interface to the M2M API for use in R.
 
-Documentation is at <https://stevenpawley.github.io/USGSm2m/>.
+Documentation is at <https://stevenpawley.github.io/usgsm2m/>.
 
 ## Installation
 
@@ -18,7 +18,7 @@ The package is not on CRAN. Install the development version from GitHub:
 
 ```r
 # install.packages("pak")
-pak::pak("stevenpawley/USGSm2m")
+pak::pak("stevenpawley/usgsm2m")
 ```
 
 You also need access to the M2M API itself, which is requested separately and
@@ -44,7 +44,7 @@ Earth Explorer password). Generate a token at <https://ers.cr.usgs.gov/>.
 default:
 
 ```r
-library(USGSm2m)
+library(usgsm2m)
 
 sess <- m2m_session()
 #> <M2MSession>

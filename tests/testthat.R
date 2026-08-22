@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(USGSm2m)
+library(usgsm2m)
 
-test_check("USGSm2m")
+test_check("usgsm2m")

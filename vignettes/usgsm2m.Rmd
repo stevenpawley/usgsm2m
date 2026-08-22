@@ -24,7 +24,7 @@ This vignette walks through the full path from logging in to having files on
 disk.
 
 ```{r setup}
-library(USGSm2m)
+library(usgsm2m)
 ```
 
 ## How the package is organised

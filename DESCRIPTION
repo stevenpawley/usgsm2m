@@ -1,4 +1,4 @@
-Package: USGSm2m
+Package: usgsm2m
 Type: Package
 Title: R Interface to the USGS/EROS Machine-to-Machine (M2M) Application Programming Interface (API)
 Version: 0.2.0
@@ -37,6 +37,6 @@ Suggests:
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/stevenpawley/USGSm2m, https://stevenpawley.github.io/USGSm2m/
-BugReports: https://github.com/stevenpawley/USGSm2m/issues
+URL: https://github.com/stevenpawley/usgsm2m, https://stevenpawley.github.io/usgsm2m/
+BugReports: https://github.com/stevenpawley/usgsm2m/issues
 Config/roxygen2/version: 8.0.0

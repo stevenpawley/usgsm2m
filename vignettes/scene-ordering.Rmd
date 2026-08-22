@@ -22,7 +22,7 @@ actually happening underneath: why getting a scene takes several steps, where
 scene lists fit, and what the download queue is doing while you wait.
 
 ```{r setup}
-library(USGSm2m)
+library(usgsm2m)
 ```
 
 ## Why it takes more than one call
@@ -96,7 +96,7 @@ of scene ids stored on the USGS server**, created by posting to
 
 ```
 {
-  "listId":      "USGSm2m_20260821150915_vbbem6",   <- a name you invent
+  "listId":      "usgsm2m_20260821150915_vbbem6",   <- a name you invent
   "idField":     "entityId",
   "entityIds":   ["LC80430322020199LGN00", ...],
   "datasetName": "landsat_ot_c2_l2"
@@ -180,7 +180,7 @@ found <- sess$dataset("landsat_ot_c2_l2")$search(
 scenes <- found$scene_list()
 scenes
 #> <M2MSceneList>
-#>   List id: USGSm2m_20260821150915_vbbem6
+#>   List id: usgsm2m_20260821150915_vbbem6
 #>   Dataset: landsat_ot_c2_l2
 #>   Next:    $products()  |  $metadata()  |  $summary()
 ```
@@ -273,7 +273,7 @@ dataset it holds — the API only reveals that through the list's summary — so
 `$dataset()` resolves it on demand:
 
 ```{r}
-again <- sess$scene_list("USGSm2m_20260821150915_vbbem6")
+again <- sess$scene_list("usgsm2m_20260821150915_vbbem6")
 again
 #>   Dataset: <unresolved>
 again$dataset()

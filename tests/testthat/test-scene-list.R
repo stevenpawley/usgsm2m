@@ -51,11 +51,11 @@ test_that("an explicit list_id registers separately from the reused one", {
     search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)
 
   reused <- found$scene_list()
-  explicit <- found$scene_list(list_id = "USGSm2m_test_explicit_id")
+  explicit <- found$scene_list(list_id = "usgsm2m_test_explicit_id")
   on.exit(try(explicit$remove(), silent = TRUE), add = TRUE)
   on.exit(try(reused$remove(), silent = TRUE), add = TRUE)
 
-  expect_equal(explicit$list_id, "USGSm2m_test_explicit_id")
+  expect_equal(explicit$list_id, "usgsm2m_test_explicit_id")
   expect_identical(found$scene_list()$list_id, reused$list_id)
 })
 

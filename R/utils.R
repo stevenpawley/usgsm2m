@@ -80,7 +80,7 @@ m2m_legacy_session <- function(api_key, service) {
 # unique within the user's account rather than meaningful.
 m2m_new_list_id <- function() {
   paste0(
-    "USGSm2m_",
+    "usgsm2m_",
     format(Sys.time(), "%Y%m%d%H%M%S"),
     "_",
     paste(sample(c(letters, 0:9), 6, replace = TRUE), collapse = "")
