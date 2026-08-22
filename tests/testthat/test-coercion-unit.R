@@ -184,6 +184,35 @@ test_that("no products gives an empty tibble", {
   expect_equal(nrow(coerce_products(list())), 0)
 })
 
+test_that("a pattern matching no product warns and lists what was there", {
+  # product names differ between datasets - the bundle is "... Product Bundle"
+  # for Landsat but "Standard Format" for corona2 - so a pattern carried over
+  # from elsewhere selects nothing, and used to do so silently
+  products <- coerce_products(list(fake_product("E1", "Standard Format")))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  expect_warning(
+    narrowed <- opts$select_products("Product Bundle"),
+    "Standard Format"
+  )
+  expect_warning(opts$select_products("Product Bundle"), "Nothing matched")
+  expect_equal(nrow(narrowed$selected()), 0)
+})
+
+test_that("a pattern matching no band warns", {
+  products <- coerce_products(list(fake_product("E1", "Bundle", file_ids = c("B1", "B2"))))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  expect_warning(opts$select_bands("NOT_A_BAND"), "Nothing matched")
+})
+
+test_that("a matching pattern does not warn", {
+  products <- coerce_products(list(fake_product("E1", "Standard Format")))
+  opts <- M2MDownloadOptions$new(session = NULL, products = products, scene_list = NULL)
+
+  expect_no_warning(opts$select_products("Standard"))
+})
+
 # --- scene list summary ------------------------------------------------------
 
 test_that("scene list summary has a fixed set of columns", {

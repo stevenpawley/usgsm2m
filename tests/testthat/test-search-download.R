@@ -81,7 +81,12 @@ test_that("request() refuses an empty selection", {
   skip_if_no_m2m()
 
   opts <- search_fixture()$filter(dplyr::row_number() == 1)$products()
-  empty <- opts$select_bands("NOT_A_REAL_BAND_NAME")
+
+  # selecting nothing warns and says what was available
+  expect_warning(
+    empty <- opts$select_bands("NOT_A_REAL_BAND_NAME"),
+    "Nothing matched"
+  )
 
   expect_equal(nrow(empty$bands()), 0)
   expect_error(empty$request(label = "test"), "No products selected")

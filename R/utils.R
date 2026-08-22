@@ -95,6 +95,28 @@ m2m_url_host <- function(url) {
 }
 
 
+# Warn that a selector matched nothing, showing what was there to match.
+#
+# Product and band names vary between datasets - the bundle is "Landsat
+# Collection 2 Level-2 Product Bundle" for one and "Standard Format" for
+# another - so a pattern carried over from another dataset silently selects
+# nothing, and the failure only surfaces later as "No products selected".
+m2m_warn_no_match <- function(patterns, field, values) {
+  available <- unique(values[!is.na(values)])
+  shown <- available[seq_len(min(6L, length(available)))]
+
+  warning(
+    "Nothing matched ", paste0("\"", patterns, "\"", collapse = " or "),
+    ".\n  Available ", field, ": ",
+    paste(shown, collapse = ", "),
+    if (length(available) > length(shown)) {
+      paste0(", ... (", length(available), " in total)")
+    },
+    call. = FALSE
+  )
+}
+
+
 # Convert a list of API records into a tibble, returning an empty tibble
 # for an empty/absent record set.
 m2m_records_to_tibble <- function(records) {

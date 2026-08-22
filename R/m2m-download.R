@@ -77,6 +77,9 @@ M2MDownloadOptions <- R6::R6Class(
     #' @description Select the individual files whose `displayId` matches any
     #'   of the given patterns.
     #'
+    #'   Patterns are matched against `displayId`, whose values you can see in
+    #'   `$bands()`. Matching nothing warns and lists what was available.
+    #'
     #'   Like `$select_products()`, this selects afresh from everything
     #'   available at that granularity rather than narrowing an existing
     #'   selection - use `$filter()` to narrow. It also does not filter on
@@ -85,19 +88,33 @@ M2MDownloadOptions <- R6::R6Class(
     #' @param patterns A character vector of patterns, e.g. `c("B4", "B5")`.
     #' @return A new [M2MDownloadOptions] with those files selected.
     select_bands = function(patterns) {
+      all_bands <- private$flatten_bands(self$products)
+
       matched <- dplyr::filter(
-        private$flatten_bands(self$products),
+        all_bands,
         stringr::str_detect(
           .data$displayId,
           stringr::str_c(patterns, collapse = "|")
         )
       )
+
+      if (nrow(matched) == 0 && nrow(all_bands) > 0) {
+        m2m_warn_no_match(patterns, "file names", all_bands$displayId)
+      }
+
       private$respawn(matched)
     },
 
     #' @description Switch the selection to whole products rather than the
     #'   individual files inside them, optionally keeping only those whose
     #'   `productName` matches one of the given patterns.
+    #'
+    #'   Patterns are matched against `productName`, whose values come from
+    #'   `$scene_products()`. They differ between datasets - the bundle is
+    #'   "Landsat Collection 2 Level-2 Product Bundle" for `landsat_ot_c2_l2`
+    #'   but "Standard Format" for `corona2` - so check `$scene_products()`
+    #'   rather than reusing a pattern from another dataset. Matching nothing
+    #'   warns and lists what was available.
     #'
     #'   As with `$select_bands()` this does not filter on availability;
     #'   chain `$filter(available)` to drop products the API has marked
@@ -109,13 +126,19 @@ M2MDownloadOptions <- R6::R6Class(
       rows <- self$scene_products()
 
       if (!is.null(patterns) && nrow(rows) > 0) {
-        rows <- dplyr::filter(
+        matched <- dplyr::filter(
           rows,
           stringr::str_detect(
             .data$productName,
             stringr::str_c(patterns, collapse = "|")
           )
         )
+
+        if (nrow(matched) == 0) {
+          m2m_warn_no_match(patterns, "product names", rows$productName)
+        }
+
+        rows <- matched
       }
 
       private$respawn(rows)
