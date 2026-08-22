@@ -164,7 +164,8 @@ queue <- sess$download_queue("my_order")
 ## Errors
 
 API failures raise errors of class `m2m_error` (with `m2m_http_error`,
-`m2m_api_error`, or `m2m_not_found` subclasses) rather than returning `NULL`,
+`m2m_api_error`, `m2m_not_found`, or `m2m_no_access` subclasses) rather than
+returning `NULL`,
 so a broken step stops the chain rather than surfacing later as a confusing
 error:
 

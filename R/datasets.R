@@ -117,7 +117,9 @@ ers_dataset <- function(session, dataset_id = NULL, dataset_name = NULL) {
     httr2::req_error(is_error = function(resp) FALSE) %>%
     httr2::req_perform()
 
-  dataset <- m2m_response_data(resp, "Dataset not found")
+  # A neutral context: this covers authorisation failures too, where asserting
+  # "not found" would contradict the API's own explanation.
+  dataset <- m2m_response_data(resp, "Dataset lookup failed")
 
   # An unknown dataset comes back as HTTP 200 with a null payload and no
   # errorCode, so m2m_check_response() sees nothing wrong - turn that into a

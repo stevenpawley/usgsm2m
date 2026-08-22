@@ -67,11 +67,16 @@ test_that("find_datasets returns one row per dataset", {
   expect_type(found$catalogs, "list")
 })
 
-test_that("an unknown dataset raises a classed error", {
+test_that("a missing dataset and an inaccessible one are told apart", {
   skip_if_no_m2m()
 
-  expect_error(
-    test_session()$dataset("definitely_not_a_dataset"),
-    class = "m2m_error"
-  )
+  sess <- test_session()
+
+  # not in the catalogue at all
+  expect_error(sess$dataset("definitely_not_a_dataset"), class = "m2m_not_found")
+
+  # exists, but this account has no access - the API answers DATASET_AUTH.
+  # find_datasets() omits exactly these, which is what the error points at.
+  expect_error(sess$dataset("modis_mod09a1_v61"), class = "m2m_no_access")
+  expect_false("modis_mod09a1_v61" %in% sess$find_datasets("modis")$datasetAlias)
 })

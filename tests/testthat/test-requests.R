@@ -218,6 +218,56 @@ test_that("both error classes inherit from m2m_error", {
   }
 })
 
+test_that("an authorisation failure is distinguished from a missing dataset", {
+  # DATASET_AUTH means the dataset exists but the account cannot reach it.
+  # Reported with the caller's context it used to read "Dataset not found:
+  # Dataset status is unavailable to this user", which sends people hunting
+  # for a typo.
+  err <- tryCatch(
+    with_captured_requests(
+      mock_response(
+        error_code = "DATASET_AUTH",
+        error_message = "Dataset status is unavailable to this user"
+      ),
+      ers_dataset(mock_session(), dataset_name = "modis_mod09a1_v61")
+    ),
+    m2m_error = function(e) e
+  )
+
+  expect_s3_class(err, "m2m_no_access")
+  expect_no_match(conditionMessage(err), "not found")
+  expect_match(conditionMessage(err), "No access")
+  expect_match(conditionMessage(err), "find_datasets")
+})
+
+test_that("m2m_no_access still inherits the general error classes", {
+  # so existing tryCatch(m2m_api_error = ) handlers keep working
+  err <- tryCatch(
+    with_captured_requests(
+      mock_response(error_code = "DATASET_AUTH", error_message = "nope"),
+      ers_dataset(mock_session(), dataset_name = "x")
+    ),
+    error = function(e) e
+  )
+
+  expect_s3_class(err, "m2m_no_access")
+  expect_s3_class(err, "m2m_api_error")
+  expect_s3_class(err, "m2m_error")
+})
+
+test_that("other error codes are not treated as access failures", {
+  err <- tryCatch(
+    with_captured_requests(
+      mock_response(error_code = "RATE_LIMIT", error_message = "slow down"),
+      ers_dataset(mock_session(), dataset_name = "x")
+    ),
+    error = function(e) e
+  )
+
+  expect_s3_class(err, "m2m_api_error")
+  expect_false(inherits(err, "m2m_no_access"))
+})
+
 test_that("an unknown dataset is reported as not found", {
   # the API answers HTTP 200 with a null payload and no errorCode
   expect_error(

@@ -7,10 +7,12 @@
 # The M2M API also signals failures with HTTP 200 and an `errorCode` in the
 # body (e.g. an expired session), so a 200 status alone doesn't mean success.
 #
-# Errors carry class "m2m_error" (plus "m2m_http_error" or "m2m_api_error")
-# so callers can catch them selectively with tryCatch(). Failures abort rather
-# than returning NULL because these run inside method chains, where a NULL
-# would surface later as a confusing "attempt to apply non-function".
+# Errors carry class "m2m_error", plus "m2m_http_error" for a bad status or
+# "m2m_api_error" for an errorCode in the body, so callers can catch them
+# selectively with tryCatch(). An authorisation failure additionally carries
+# "m2m_no_access". Failures abort rather than returning NULL because these run
+# inside method chains, where a NULL would surface later as a confusing
+# "attempt to apply non-function".
 m2m_check_response <- function(resp, on_fail_message, call = rlang::caller_env()) {
   if (httr2::resp_status(resp) != 200) {
     rlang::abort(
@@ -28,6 +30,24 @@ m2m_check_response <- function(resp, on_fail_message, call = rlang::caller_env()
 
   if (!is.null(body$errorCode)) {
     detail <- if (!is.null(body$errorMessage)) body$errorMessage else body$errorCode
+
+    # DATASET_AUTH means the dataset exists but this account cannot reach it.
+    # Reported with the caller's context it reads as though the name were
+    # wrong ("Dataset not found: Dataset status is unavailable to this user"),
+    # which sends people looking for a typo, so say what is actually wrong and
+    # point at the call that lists the datasets they can use.
+    if (identical(body$errorCode, "DATASET_AUTH")) {
+      rlang::abort(
+        paste0(
+          "No access to this dataset: ", detail,
+          ". $find_datasets() lists the datasets this account can use."
+        ),
+        class = c("m2m_no_access", "m2m_api_error", "m2m_error"),
+        error_code = body$errorCode,
+        call = call
+      )
+    }
+
     rlang::abort(
       paste0(on_fail_message, ": ", detail),
       class = c("m2m_api_error", "m2m_error"),

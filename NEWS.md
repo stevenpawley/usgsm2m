@@ -11,7 +11,16 @@
   that does not exist, so a successful call is not evidence that anything was
   removed - check `$downloads()` afterwards.
 
+* Authorisation failures now raise a `m2m_no_access` condition, a subclass of
+  `m2m_api_error`, so they can be caught separately from other API errors.
+
 ## Bug fixes
+
+* Asking for a dataset the account cannot access reported it as missing:
+  `"Dataset not found: Dataset status is unavailable to this user"`. The
+  dataset exists and is spelled correctly, so this sent people hunting for a
+  typo. Such failures now say that access is the problem and point at
+  `$find_datasets()`, which lists exactly the datasets the account can use.
 
 * Proxied downloads could not be retrieved at all. USGS serves some products
   from another host (`landsatlook.usgs.gov`, for instance) on a signed URL,
