@@ -76,6 +76,8 @@ download and which the distribution system is still preparing.</p>
 <h3 id="public-methods">Public methods<a class="anchor" aria-label="anchor" href="#public-methods"></a></h3>
 <p></p><ul><li><p><a href="#method-M2MDownloadQueue-initialize"><code>M2MDownloadQueue$new()</code></a></p></li>
 <li><p><a href="#method-M2MDownloadQueue-refresh"><code>M2MDownloadQueue$refresh()</code></a></p></li>
+<li><p><a href="#method-M2MDownloadQueue-ready"><code>M2MDownloadQueue$ready()</code></a></p></li>
+<li><p><a href="#method-M2MDownloadQueue-pending"><code>M2MDownloadQueue$pending()</code></a></p></li>
 <li><p><a href="#method-M2MDownloadQueue-is_ready"><code>M2MDownloadQueue$is_ready()</code></a></p></li>
 <li><p><a href="#method-M2MDownloadQueue-retrieve"><code>M2MDownloadQueue$retrieve()</code></a></p></li>
 <li><p><a href="#method-M2MDownloadQueue-summary"><code>M2MDownloadQueue$summary()</code></a></p></li>
@@ -125,13 +127,42 @@ download and which the distribution system is still preparing.</p>
 
 </div>
 
-<p></p><hr><a id="method-M2MDownloadQueue-is_ready"></a><div class="section">
-<h3 id="m-mdownloadqueue-is-ready-"><code>M2MDownloadQueue$is_ready()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-is-ready-"></a></h3>
-<p>Whether every requested file is ready to download.</p><div class="section">
+<p></p><hr><a id="method-M2MDownloadQueue-ready"></a><div class="section">
+<h3 id="m-mdownloadqueue-ready-"><code>M2MDownloadQueue$ready()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-ready-"></a></h3>
+<p>The files that can be downloaded now, from either
+  `$available` or `$requested`.</p>
+<p>Readiness is a matter of having a URL, not of which bucket the API
+  put a row in: proxied downloads are listed under `$requested` but
+  carry a working URL, because they are served by another USGS host
+  rather than staged by the distribution system.</p><div class="section">
 <h4 id="usage-2">Usage<a class="anchor" aria-label="anchor" href="#usage-2"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">ready</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="returns-1">Returns<a class="anchor" aria-label="anchor" href="#returns-1"></a></h4>
+<p>A tibble of downloadable files.</p>
+</div>
+
+</div>
+
+<p></p><hr><a id="method-M2MDownloadQueue-pending"></a><div class="section">
+<h3 id="m-mdownloadqueue-pending-"><code>M2MDownloadQueue$pending()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-pending-"></a></h3>
+<p>The files still being prepared, which have no URL yet.</p><div class="section">
+<h4 id="usage-3">Usage<a class="anchor" aria-label="anchor" href="#usage-3"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">pending</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div><p></p><div class="section">
+<h4 id="returns-2">Returns<a class="anchor" aria-label="anchor" href="#returns-2"></a></h4>
+<p>A tibble of pending files.</p>
+</div>
+
+</div>
+
+<p></p><hr><a id="method-M2MDownloadQueue-is_ready"></a><div class="section">
+<h3 id="m-mdownloadqueue-is-ready-"><code>M2MDownloadQueue$is_ready()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-is-ready-"></a></h3>
+<p>Whether every file in the order can be downloaded now.</p><div class="section">
+<h4 id="usage-4">Usage<a class="anchor" aria-label="anchor" href="#usage-4"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div><p></p><div class="section">
+<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
 <p>`TRUE` if nothing is still being prepared.</p>
 </div>
 
@@ -139,21 +170,28 @@ download and which the distribution system is still preparing.</p>
 
 <p></p><hr><a id="method-M2MDownloadQueue-retrieve"></a><div class="section">
 <h3 id="m-mdownloadqueue-retrieve-"><code>M2MDownloadQueue$retrieve()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-retrieve-"></a></h3>
-<p>Download every currently available file to disk. Call
-  `$refresh()` first if `$is_ready()` is `FALSE`.</p><div class="section">
-<h4 id="usage-3">Usage<a class="anchor" aria-label="anchor" href="#usage-3"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">retrieve</span><span class="op">(</span><span class="va">out_dir</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p>Download every file that has a URL to disk. Call
+  `$refresh()` first if `$is_ready()` is `FALSE`.</p>
+<p>Proxied downloads are reported back to the API afterwards, since it
+  does not serve them itself and would otherwise leave them in the
+  queue indefinitely.</p><div class="section">
+<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">retrieve</span><span class="op">(</span><span class="va">out_dir</span>, report_proxied <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-1">Arguments<a class="anchor" aria-label="anchor" href="#arguments-1"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>out_dir</code></dt>
 <dd><p>Directory to write files into. Created if missing.</p></dd>
 
+      <dt><code>report_proxied</code></dt>
+<dd><p>Whether to mark proxied downloads complete.</p></dd>
+
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-2">Returns<a class="anchor" aria-label="anchor" href="#returns-2"></a></h4>
-<p>A tibble with one row per file: `entityId`, `url`, `path` and
-  `status` (`"downloaded"` or `"failed"`).</p>
+<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<p>A tibble with one row per file: `entityId`, `downloadId`,
+  `url`, `path`, `size` and `status`. A `status` of `"expired"` means
+  the signed URL is no longer valid - `$refresh()` and retry.</p>
 </div>
 
 </div>
@@ -162,7 +200,7 @@ download and which the distribution system is still preparing.</p>
 <h3 id="m-mdownloadqueue-summary-"><code>M2MDownloadQueue$summary()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-summary-"></a></h3>
 <p>Summarize this order by dataset, via the
   `download-summary` endpoint.</p><div class="section">
-<h4 id="usage-4">Usage<a class="anchor" aria-label="anchor" href="#usage-4"></a></h4>
+<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span>download_application <span class="op">=</span> <span class="st">"M2M"</span>, send_email <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-2">Arguments<a class="anchor" aria-label="anchor" href="#arguments-2"></a></h4>
@@ -177,7 +215,7 @@ if it does not match the one used at request time.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
+<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
 <p>A list with `label`, `download_count`, `scene_count`,
   `total_estimated_size` and a `collections` tibble.</p>
 </div>
@@ -191,7 +229,7 @@ if it does not match the one used at request time.</p></dd>
 <p>Unlike the other methods here this changes server-side state: it is
   what starts a staged order being prepared. Follow it with
   `$refresh()` to pick up URLs as they become ready.</p><div class="section">
-<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">prepare</span><span class="op">(</span>download_application <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-3">Arguments<a class="anchor" aria-label="anchor" href="#arguments-3"></a></h4>
@@ -202,7 +240,7 @@ order to.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<h4 id="returns-6">Returns<a class="anchor" aria-label="anchor" href="#returns-6"></a></h4>
 <p>The queue, invisibly.</p>
 </div>
 
@@ -211,10 +249,10 @@ order to.</p></dd>
 <p></p><hr><a id="method-M2MDownloadQueue-cancel"></a><div class="section">
 <h3 id="m-mdownloadqueue-cancel-"><code>M2MDownloadQueue$cancel()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-cancel-"></a></h3>
 <p>Cancel this order, removing it from the M2M queue.</p><div class="section">
-<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
+<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">cancel</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-5">Returns<a class="anchor" aria-label="anchor" href="#returns-5"></a></h4>
+<h4 id="returns-7">Returns<a class="anchor" aria-label="anchor" href="#returns-7"></a></h4>
 <p>The queue, invisibly.</p>
 </div>
 
@@ -223,7 +261,7 @@ order to.</p></dd>
 <p></p><hr><a id="method-M2MDownloadQueue-print"></a><div class="section">
 <h3 id="m-mdownloadqueue-print-"><code>M2MDownloadQueue$print()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-print-"></a></h3>
 <p>Print a summary of the order.</p><div class="section">
-<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
@@ -239,7 +277,7 @@ order to.</p></dd>
 <p></p><hr><a id="method-M2MDownloadQueue-clone"></a><div class="section">
 <h3 id="m-mdownloadqueue-clone-"><code>M2MDownloadQueue$clone()</code><a class="anchor" aria-label="anchor" href="#m-mdownloadqueue-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<h4 id="usage-10">Usage<a class="anchor" aria-label="anchor" href="#usage-10"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MDownloadQueue</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
 <h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>

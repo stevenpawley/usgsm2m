@@ -30,6 +30,10 @@ download and which the distribution system is still preparing.
 
 - [`M2MDownloadQueue$refresh()`](#method-M2MDownloadQueue-refresh)
 
+- [`M2MDownloadQueue$ready()`](#method-M2MDownloadQueue-ready)
+
+- [`M2MDownloadQueue$pending()`](#method-M2MDownloadQueue-pending)
+
 - [`M2MDownloadQueue$is_ready()`](#method-M2MDownloadQueue-is_ready)
 
 - [`M2MDownloadQueue$retrieve()`](#method-M2MDownloadQueue-retrieve)
@@ -94,9 +98,43 @@ The queue, invisibly.
 
 ------------------------------------------------------------------------
 
+### `M2MDownloadQueue$ready()`
+
+The files that can be downloaded now, from either \`\$available\` or
+\`\$requested\`.
+
+Readiness is a matter of having a URL, not of which bucket the API put a
+row in: proxied downloads are listed under \`\$requested\` but carry a
+working URL, because they are served by another USGS host rather than
+staged by the distribution system.
+
+#### Usage
+
+    M2MDownloadQueue$ready()
+
+#### Returns
+
+A tibble of downloadable files.
+
+------------------------------------------------------------------------
+
+### `M2MDownloadQueue$pending()`
+
+The files still being prepared, which have no URL yet.
+
+#### Usage
+
+    M2MDownloadQueue$pending()
+
+#### Returns
+
+A tibble of pending files.
+
+------------------------------------------------------------------------
+
 ### `M2MDownloadQueue$is_ready()`
 
-Whether every requested file is ready to download.
+Whether every file in the order can be downloaded now.
 
 #### Usage
 
@@ -110,12 +148,16 @@ Whether every requested file is ready to download.
 
 ### `M2MDownloadQueue$retrieve()`
 
-Download every currently available file to disk. Call \`\$refresh()\`
-first if \`\$is_ready()\` is \`FALSE\`.
+Download every file that has a URL to disk. Call \`\$refresh()\` first
+if \`\$is_ready()\` is \`FALSE\`.
+
+Proxied downloads are reported back to the API afterwards, since it does
+not serve them itself and would otherwise leave them in the queue
+indefinitely.
 
 #### Usage
 
-    M2MDownloadQueue$retrieve(out_dir)
+    M2MDownloadQueue$retrieve(out_dir, report_proxied = TRUE)
 
 #### Arguments
 
@@ -123,10 +165,15 @@ first if \`\$is_ready()\` is \`FALSE\`.
 
   Directory to write files into. Created if missing.
 
+- `report_proxied`:
+
+  Whether to mark proxied downloads complete.
+
 #### Returns
 
-A tibble with one row per file: \`entityId\`, \`url\`, \`path\` and
-\`status\` (\`"downloaded"\` or \`"failed"\`).
+A tibble with one row per file: \`entityId\`, \`downloadId\`, \`url\`,
+\`path\`, \`size\` and \`status\`. A \`status\` of \`"expired"\` means
+the signed URL is no longer valid - \`\$refresh()\` and retry.
 
 ------------------------------------------------------------------------
 

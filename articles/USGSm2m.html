@@ -284,12 +284,13 @@ the order again later, so give it something meaningful:</p>
 <span><span class="co">#&gt;   Available: 6 file(s) ready</span></span>
 <span><span class="co">#&gt;   Preparing: 0</span></span>
 <span><span class="co">#&gt;   Next:      $retrieve(out_dir)</span></span></code></pre></div>
-<p>Files the distribution system can serve immediately come back with
-URLs attached. Larger or archived products have to be staged first, and
-those show up under <code>$requested</code> instead.
-<code>$is_ready()</code> tells you which situation you are in, and
-<code>$refresh()</code> re-polls, adding newly ready files to
-<code>$available</code>:</p>
+<p>A file is ready once it has a URL. Some come straight back that way;
+others have to be staged first. Note that the API’s own
+<code>$available</code> and <code>$requested</code> buckets do not map
+cleanly onto that — proxied downloads sit in <code>$requested</code> but
+already carry a working URL — so use <code>$ready()</code> and
+<code>$pending()</code>. <code>$is_ready()</code> tells you whether
+anything is still staging, and <code>$refresh()</code> re-polls:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span>

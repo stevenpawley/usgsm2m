@@ -38,6 +38,16 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="usgsm2m-development-version">USGSm2m (development version)<a class="anchor" aria-label="anchor" href="#usgsm2m-development-version"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<ul><li>Proxied downloads could not be retrieved at all. USGS serves some products from another host (<code>landsatlook.usgs.gov</code>, for instance) on a signed URL, and lists those under <code>$requested</code> even though they carry a working URL. The queue treated everything in <code>$requested</code> as still being prepared, so <code>$is_ready()</code> never became <code>TRUE</code> and <code>$retrieve()</code> refused with “No downloads are available yet”. Readiness is now a matter of having a URL, via the new <code>$ready()</code> and <code>$pending()</code> methods.</li>
+<li>The M2M session token was sent to whichever host a download URL pointed at. Proxied URLs are self-authenticating and ignore it, so this handed the token to hosts that neither needed nor asked for it. It is now sent only to the M2M API’s own host.</li>
+<li>Proxied downloads are now reported back through <code>download-complete-proxied</code> once fetched. The API does not serve them itself and so cannot observe the transfer; without this they stay in the download queue indefinitely.</li>
+<li>An expired signed URL is reported as <code>status = "expired"</code> rather than a bare failure, since the fix is to <code>$refresh()</code> and retry.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="usgsm2m-020">USGSm2m 0.2.0<a class="anchor" aria-label="anchor" href="#usgsm2m-020"></a></h2>
 <p>The package is now organised around R6 objects rather than a flat set of functions. <strong>This is a breaking change</strong>: every exported <code>ers_*</code> function has been removed. See “Migrating from 0.1.0” below.</p>
 <div class="section level3">
