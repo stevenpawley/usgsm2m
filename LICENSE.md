@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright (c) 2025 RUSGSM2M authors
+Copyright (c) 2025 usgsm2m authors
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the

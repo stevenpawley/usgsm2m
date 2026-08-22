@@ -7,7 +7,7 @@ you wait.
 
 ``` r
 
-library(USGSm2m)
+library(usgsm2m)
 ```
 
 ## Why it takes more than one call
@@ -79,7 +79,7 @@ A scene list is not something the package holds in memory. It is a
 to `scene-list-add`:
 
     {
-      "listId":      "USGSm2m_20260821150915_vbbem6",   <- a name you invent
+      "listId":      "usgsm2m_20260821150915_vbbem6",   <- a name you invent
       "idField":     "entityId",
       "entityIds":   ["LC80430322020199LGN00", ...],
       "datasetName": "landsat_ot_c2_l2"
@@ -171,7 +171,7 @@ found <- sess$dataset("landsat_ot_c2_l2")$search(
 scenes <- found$scene_list()
 scenes
 #> <M2MSceneList>
-#>   List id: USGSm2m_20260821150915_vbbem6
+#>   List id: usgsm2m_20260821150915_vbbem6
 #>   Dataset: landsat_ot_c2_l2
 #>   Next:    $products()  |  $metadata()  |  $summary()
 ```
@@ -276,7 +276,7 @@ summary — so `$dataset()` resolves it on demand:
 
 ``` r
 
-again <- sess$scene_list("USGSm2m_20260821150915_vbbem6")
+again <- sess$scene_list("usgsm2m_20260821150915_vbbem6")
 again
 #>   Dataset: <unresolved>
 again$dataset()
@@ -377,7 +377,7 @@ and `queue$summary()` breaks one order down by dataset.
 
 | Thing | Identified by | Survives your session? | Created by |
 |----|----|----|----|
-| Session | API token | No — expires when idle | [`m2m_session()`](https://stevenpawley.github.io/USGSm2m/reference/m2m_session.md) |
+| Session | API token | No — expires when idle | [`m2m_session()`](https://stevenpawley.github.io/usgsm2m/reference/m2m_session.md) |
 | Scene list | `listId` | Usually not — expires when idle | `$scene_list()`, or implicitly by `$products()` |
 | Download order | `label` | Yes | `$request()` |
 | Downloaded files | path on disk | Yes | `$retrieve()` |

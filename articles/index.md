@@ -3,6 +3,6 @@
 ### Guides
 
 - [Searching for and downloading USGS/EROS
-  data](https://stevenpawley.github.io/USGSm2m/articles/USGSm2m.md):
+  data](https://stevenpawley.github.io/usgsm2m/articles/usgsm2m.md):
 - [How scene ordering
-  works](https://stevenpawley.github.io/USGSm2m/articles/scene-ordering.md):
+  works](https://stevenpawley.github.io/usgsm2m/articles/scene-ordering.md):

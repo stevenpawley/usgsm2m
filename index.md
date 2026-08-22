@@ -1,11 +1,11 @@
-# USGSm2m
+# usgsm2m
 
 R interface to the USGS/EROS Machine-to-Machine (M2M) API.
 
 This package is not affiliated with the USGS/EROS. It is a
 community-developed interface to the M2M API for use in R.
 
-Documentation is at <https://stevenpawley.github.io/USGSm2m/>.
+Documentation is at <https://stevenpawley.github.io/usgsm2m/>.
 
 ## Installation
 
@@ -14,7 +14,7 @@ The package is not on CRAN. Install the development version from GitHub:
 ``` r
 
 # install.packages("pak")
-pak::pak("stevenpawley/USGSm2m")
+pak::pak("stevenpawley/usgsm2m")
 ```
 
 You also need access to the M2M API itself, which is requested
@@ -36,12 +36,12 @@ without reading the API docs:
 Authentication uses an ERS username and an M2M **application token**
 (not your Earth Explorer password). Generate a token at
 <https://ers.cr.usgs.gov/>.
-[`m2m_session()`](https://stevenpawley.github.io/USGSm2m/reference/m2m_session.md)
+[`m2m_session()`](https://stevenpawley.github.io/usgsm2m/reference/m2m_session.md)
 reads `M2M_USERNAME` and `M2M_TOKEN` from the environment by default:
 
 ``` r
 
-library(USGSm2m)
+library(usgsm2m)
 
 sess <- m2m_session()
 #> <M2MSession>
