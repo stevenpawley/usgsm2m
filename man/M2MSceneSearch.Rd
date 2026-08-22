@@ -23,6 +23,7 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.}
     \item \href{#method-M2MSceneSearch-initialize}{\code{M2MSceneSearch$new()}}
     \item \href{#method-M2MSceneSearch-dataset}{\code{M2MSceneSearch$dataset()}}
     \item \href{#method-M2MSceneSearch-filter}{\code{M2MSceneSearch$filter()}}
+    \item \href{#method-M2MSceneSearch-combine}{\code{M2MSceneSearch$combine()}}
     \item \href{#method-M2MSceneSearch-scene_list}{\code{M2MSceneSearch$scene_list()}}
     \item \href{#method-M2MSceneSearch-products}{\code{M2MSceneSearch$products()}}
     \item \href{#method-M2MSceneSearch-print}{\code{M2MSceneSearch$print()}}
@@ -86,6 +87,33 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.}
   }
   \subsection{Returns}{
     A new [M2MSceneSearch] with the subset applied.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MSceneSearch-combine"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MSceneSearch-combine}{}}}
+\subsection{\code{M2MSceneSearch$combine()}}{
+  Combine these scenes with those of other searches, so one
+  `$products()` call and one download order covers all of them.
+
+  Scenes appearing in more than one search are kept once, so searches
+  that overlap do not double-count. All the searches must be of the
+  same dataset, since a set of products is discovered per dataset.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MSceneSearch$combine(...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{Other [M2MSceneSearch] objects.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new [M2MSceneSearch] holding every scene.
   }
 }
 

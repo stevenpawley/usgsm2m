@@ -46,6 +46,51 @@ M2MSceneSearch <- R6::R6Class(
       )
     },
 
+    #' @description Combine these scenes with those of other searches, so one
+    #'   `$products()` call and one download order covers all of them.
+    #'
+    #'   Scenes appearing in more than one search are kept once, so searches
+    #'   that overlap do not double-count. All the searches must be of the
+    #'   same dataset, since a set of products is discovered per dataset.
+    #' @param ... Other [M2MSceneSearch] objects.
+    #' @return A new [M2MSceneSearch] holding every scene.
+    combine = function(...) {
+      others <- list(...)
+
+      if (length(others) == 0) {
+        return(self)
+      }
+
+      not_searches <- !vapply(others, inherits, logical(1), "M2MSceneSearch")
+      if (any(not_searches)) {
+        stop("$combine() takes M2MSceneSearch objects, as returned by $search()")
+      }
+
+      aliases <- vapply(others, function(x) x$dataset()$alias(), character(1))
+      mismatched <- setdiff(aliases, private$dataset_$alias())
+      if (length(mismatched) > 0) {
+        stop(
+          "Cannot combine searches of different datasets: ",
+          private$dataset_$alias(), " and ", paste(mismatched, collapse = ", ")
+        )
+      }
+
+      scenes <- dplyr::bind_rows(self$scenes, lapply(others, function(x) x$scenes))
+      if (nrow(scenes) > 0 && "entityId" %in% names(scenes)) {
+        scenes <- dplyr::distinct(scenes, .data$entityId, .keep_all = TRUE)
+      }
+
+      M2MSceneSearch$new(
+        session = private$session_,
+        dataset = private$dataset_,
+        results = scenes,
+        # the API's hit counts describe the individual queries and cannot be
+        # added up without double-counting overlaps, and a combined set is
+        # not something the API can page through anyway
+        total_hits = nrow(scenes)
+      )
+    },
+
     #' @description Register these scenes as a scene list on the M2M server.
     #'   `$products()` does this for you, so you only need it directly if you
     #'   want the list for its own sake (e.g. bulk metadata).

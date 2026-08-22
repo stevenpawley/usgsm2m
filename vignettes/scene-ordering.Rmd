@@ -213,36 +213,46 @@ sess$scene_list("july_2020_candidates")
 ```
 
 Bear in mind that lists expire (see below), so this is useful within a working
-session rather than across days.
+session rather than across days. To gather scenes from several searches, use
+`$combine()` rather than reusing an identifier — see below.
 
 `$remove()` deletes the list from the server when you are finished with it.
 
 ### Combining several searches into one set
 
-One search normally means one scene list, so you will not usually think about
-what happens when scenes are added to a list that already exists. The exception
-is when you want scenes from *more than one* search treated as a single set —
-two date ranges, say, or two areas — so that one `$products()` call and one
-download order covers all of them.
-
-Give the searches the same `list_id` and they accumulate:
+Sometimes one query cannot express what you want — two separate date ranges,
+say, or two areas — but you still want a single `$products()` call and a single
+download order to cover all of it. `$combine()` merges searches:
 
 ```{r}
 ds <- sess$dataset("landsat_ot_c2_l2")
 
-july <- ds$search(temporal = filter_temporal("2020-07-01", "2020-07-05"), max_results = 2)
-sept <- ds$search(temporal = filter_temporal("2020-09-01", "2020-09-05"), max_results = 2)
+july <- ds$search(temporal = filter_temporal("2020-07-01", "2020-07-05"))
+sept <- ds$search(temporal = filter_temporal("2020-09-01", "2020-09-05"))
 
-july$scene_list(list_id = "summer_2020")
-scenes <- sept$scene_list(list_id = "summer_2020")
+summer <- july$combine(sept)
+summer
+#> <M2MSceneSearch>
+#>   Dataset: landsat_ot_c2_l2
+#>   Scenes:  4 of 4 total hits
+#>   Next:    $products()  |  $filter(...)  |  $scene_list()
 
-scenes$scenes()      # all four scenes
-scenes$products()    # products for the whole set
+summer$products()
 ```
 
-Adding **appends** rather than replacing, which is what makes this work, and
-re-adding a scene already in the list is a **no-op**, so searches that overlap
-will not double-count.
+Like `$filter()`, it returns a new search and leaves the originals untouched.
+It takes several at once and chains, so `july$combine(sept, oct)` and
+`july$combine(sept)$combine(oct)` are the same thing.
+
+A scene found by more than one search is kept once, so overlapping searches do
+not double-count. All the searches have to be of the same dataset, since
+products are discovered per dataset — combining across datasets raises an
+error rather than producing a set whose `$products()` would be wrong.
+
+Note that `$total_hits` on a combined search is simply how many scenes it
+holds. The API's per-query hit counts describe the individual queries and
+cannot be added up without double-counting, and a combined set is not
+something the API can page through.
 
 ### Lifetime
 
