@@ -259,15 +259,6 @@ M2MDownloadQueue <- R6::R6Class(
     #' @field label The label identifying this order.
     label = NULL,
 
-    #' @field available A tibble of files ready to download, with URLs.
-    available = NULL,
-
-    #' @field requested A tibble of files still being prepared.
-    requested = NULL,
-
-    #' @field queue_size Number of items the API still has queued.
-    queue_size = NULL,
-
     #' @description Attach to a download order. Use
     #'   `M2MDownloadOptions$request()` or `M2MSession$download_queue()`.
     #' @param session The parent [M2MSession].
@@ -277,9 +268,9 @@ M2MDownloadQueue <- R6::R6Class(
     initialize = function(session, label, available = NULL, n_preparing = NULL) {
       private$session_ <- session
       self$label <- label
-      self$available <- available %||% tibble::tibble()
-      self$requested <- tibble::tibble()
-      self$queue_size <- n_preparing %||% 0L
+      private$available_ <- available %||% tibble::tibble()
+      private$requested_ <- tibble::tibble()
+      private$queue_size_ <- n_preparing %||% 0L
 
       # Reconnecting to an existing order: fetch its current state.
       if (is.null(available)) {
@@ -292,8 +283,8 @@ M2MDownloadQueue <- R6::R6Class(
     #'   that have finished preparing since the last check.
     #'
     #'   Unlike the other methods here, this updates the object in place
-    #'   rather than returning a new one - newly ready files are added to
-    #'   `$available` and `$requested`/`$queue_size` are replaced.
+    #'   rather than returning a new one, because it reflects changing
+    #'   server-side queue state.
     #' @return The queue, invisibly.
     refresh = function() {
       queue <- api_download_queue(
@@ -304,28 +295,28 @@ M2MDownloadQueue <- R6::R6Class(
       # Accumulate rather than replace: the API drops entries once it has
       # handed them over, so a plain replacement would lose URLs collected
       # by an earlier poll or by the original download request.
-      self$available <- private$merge_available(self$available, queue$available)
-      self$requested <- queue$requested
-      self$queue_size <- queue$queue_size
+      private$available_ <- private$merge_available(
+        private$available_,
+        queue$available
+      )
+      private$requested_ <- queue$requested
+      private$queue_size_ <- queue$queue_size
       invisible(self)
     },
 
-    #' @description The files that can be downloaded now, from either
-    #'   `$available` or `$requested`.
-    #'
-    #'   Readiness is a matter of having a URL, not of which bucket the API
-    #'   put a row in: proxied downloads are listed under `$requested` but
-    #'   carry a working URL, because they are served by another USGS host
-    #'   rather than staged by the distribution system.
+    #' @description The files that can be downloaded now. Readiness is based
+    #'   on having a URL, regardless of which internal API bucket supplied it.
     #' @return A tibble of downloadable files.
     ready = function() {
-      private$with_urls(dplyr::bind_rows(self$available, self$requested))
+      private$with_urls(
+        dplyr::bind_rows(private$available_, private$requested_)
+      )
     },
 
     #' @description The files still being prepared, which have no URL yet.
     #' @return A tibble of pending files.
     pending = function() {
-      rows <- dplyr::bind_rows(self$available, self$requested)
+      rows <- dplyr::bind_rows(private$available_, private$requested_)
       if (nrow(rows) == 0 || !"url" %in% names(rows)) {
         return(rows)
       }
@@ -335,7 +326,7 @@ M2MDownloadQueue <- R6::R6Class(
     #' @description Whether every file in the order can be downloaded now.
     #' @return `TRUE` if nothing is still being prepared.
     is_ready = function() {
-      nrow(self$pending()) == 0 && (self$queue_size %||% 0) == 0
+      nrow(self$pending()) == 0 && (private$queue_size_ %||% 0) == 0
     },
 
     #' @description Download every file that has a URL to disk. Call
@@ -376,23 +367,6 @@ M2MDownloadQueue <- R6::R6Class(
       }
 
       results
-    },
-
-    #' @description Summarize this order by dataset, via the
-    #'   `download-summary` endpoint.
-    #' @param download_application The application the downloads were
-    #'   requested under. Required by the API; the counts come back as zero
-    #'   if it does not match the one used at request time.
-    #' @param send_email Whether the API should also email the summary.
-    #' @return A list with `label`, `download_count`, `scene_count`,
-    #'   `total_estimated_size` and a `collections` tibble.
-    summary = function(download_application = "M2M", send_email = FALSE) {
-      api_download_summary(
-        private$session_$ers_session(),
-        label = self$label,
-        download_application = download_application,
-        send_email = send_email
-      )
     },
 
     #' @description Move this order's scenes into the queue for processing,
@@ -453,6 +427,9 @@ M2MDownloadQueue <- R6::R6Class(
   ),
   private = list(
     session_ = NULL,
+    available_ = NULL,
+    requested_ = NULL,
+    queue_size_ = NULL,
 
     # Rows that carry a usable URL.
     with_urls = function(rows) {
@@ -465,7 +442,7 @@ M2MDownloadQueue <- R6::R6Class(
     # Downloads the API is not serving itself, which have to be reported
     # complete once fetched. The queue marks these with a "Proxied" status.
     proxied_ids = function() {
-      rows <- dplyr::bind_rows(self$available, self$requested)
+      rows <- dplyr::bind_rows(private$available_, private$requested_)
       if (nrow(rows) == 0 || !all(c("downloadId", "statusText") %in% names(rows))) {
         return(integer())
       }

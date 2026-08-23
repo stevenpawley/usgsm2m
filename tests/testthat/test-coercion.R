@@ -65,7 +65,8 @@ test_that("scene list summary keeps a stable set of columns", {
     temporal = filter_temporal("2020-07-01", "2020-07-31"),
     max_results = 5
   )
-  scenes <- found$scene_list()
+  found$products()
+  scenes <- found$.__enclos_env__$private$scene_list_
   on.exit(try(scenes$remove(), silent = TRUE), add = TRUE)
 
   out <- scenes$summary()

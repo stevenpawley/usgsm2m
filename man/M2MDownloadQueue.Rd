@@ -12,12 +12,6 @@ download and which the distribution system is still preparing.
   \if{html}{\out{<div class="r6-fields">}}
   \describe{
     \item{\code{label}}{The label identifying this order.}
-
-    \item{\code{available}}{A tibble of files ready to download, with URLs.}
-
-    \item{\code{requested}}{A tibble of files still being prepared.}
-
-    \item{\code{queue_size}}{Number of items the API still has queued.}
   }
   \if{html}{\out{</div>}}
 }
@@ -30,7 +24,6 @@ download and which the distribution system is still preparing.
     \item \href{#method-M2MDownloadQueue-pending}{\code{M2MDownloadQueue$pending()}}
     \item \href{#method-M2MDownloadQueue-is_ready}{\code{M2MDownloadQueue$is_ready()}}
     \item \href{#method-M2MDownloadQueue-retrieve}{\code{M2MDownloadQueue$retrieve()}}
-    \item \href{#method-M2MDownloadQueue-summary}{\code{M2MDownloadQueue$summary()}}
     \item \href{#method-M2MDownloadQueue-prepare}{\code{M2MDownloadQueue$prepare()}}
     \item \href{#method-M2MDownloadQueue-remove_items}{\code{M2MDownloadQueue$remove_items()}}
     \item \href{#method-M2MDownloadQueue-cancel}{\code{M2MDownloadQueue$cancel()}}
@@ -69,8 +62,8 @@ download and which the distribution system is still preparing.
   that have finished preparing since the last check.
 
   Unlike the other methods here, this updates the object in place
-  rather than returning a new one - newly ready files are added to
-  `$available` and `$requested`/`$queue_size` are replaced.
+  rather than returning a new one, because it reflects changing
+  server-side queue state.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{M2MDownloadQueue$refresh()}
@@ -85,13 +78,8 @@ download and which the distribution system is still preparing.
 \if{html}{\out{<a id="method-M2MDownloadQueue-ready"></a>}}
 \if{latex}{\out{\hypertarget{method-M2MDownloadQueue-ready}{}}}
 \subsection{\code{M2MDownloadQueue$ready()}}{
-  The files that can be downloaded now, from either
-  `$available` or `$requested`.
-
-  Readiness is a matter of having a URL, not of which bucket the API
-  put a row in: proxied downloads are listed under `$requested` but
-  carry a working URL, because they are served by another USGS host
-  rather than staged by the distribution system.
+  The files that can be downloaded now. Readiness is based
+  on having a URL, regardless of which internal API bucket supplied it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{M2MDownloadQueue$ready()}
@@ -164,33 +152,6 @@ download and which the distribution system is still preparing.
     A tibble with one row per file: `entityId`, `downloadId`,
   `url`, `path`, `size` and `status`. A `status` of `"expired"` means
   the signed URL is no longer valid - `$refresh()` and retry.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-M2MDownloadQueue-summary"></a>}}
-\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-summary}{}}}
-\subsection{\code{M2MDownloadQueue$summary()}}{
-  Summarize this order by dataset, via the
-  `download-summary` endpoint.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{M2MDownloadQueue$summary(download_application = "M2M", send_email = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{download_application}}{The application the downloads were
-requested under. Required by the API; the counts come back as zero
-if it does not match the one used at request time.}
-      \item{\code{send_email}}{Whether the API should also email the summary.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A list with `label`, `download_count`, `scene_count`,
-  `total_estimated_size` and a `collections` tibble.
   }
 }
 

@@ -83,7 +83,7 @@ found <- ds$search(
 #> <M2MSceneSearch>
 #>   Dataset: landsat_ot_c2_l2
 #>   Scenes:  3 of 3 total hits
-#>   Next:    $products()  |  $filter(...)  |  $scene_list()
+#>   Next:    $products()  |  $filter(...)
 ```
 
 All results are retrieved by paging automatically; pass `max_results` to cap
@@ -155,8 +155,8 @@ that matches nothing warns and lists what was available, rather than quietly
 selecting an empty set.
 
 Files the distribution system cannot serve immediately are prepared in the
-background. When `$is_ready()` is `FALSE`, poll with `$refresh()` — it adds
-newly ready files to `$available` in place:
+background. When `$is_ready()` is `FALSE`, poll with `$refresh()` to update the
+queue's internal state:
 
 ```r
 while (!queue$is_ready()) {

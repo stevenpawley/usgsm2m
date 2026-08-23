@@ -1,16 +1,32 @@
-# A scene list created from a search, shared across the tests below so the
-# suite registers one list rather than one per test.
+registered_list <- function(search) {
+  search$.__enclos_env__$private$scene_list_
+}
+
+# The internal scene list created by $products(), shared across the tests below
+# so the suite registers one list rather than one per test.
 list_fixture <- local({
   cached <- NULL
   function() {
     if (is.null(cached)) {
-      cached <<- test_session()$
+      found <- test_session()$
         dataset("landsat_ot_c2_l2")$
-        search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)$
-        scene_list()
+        search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)
+      found$products()
+      cached <<- registered_list(found)
     }
     cached
   }
+})
+
+test_that("scene-list registration is not part of the public search API", {
+  search <- M2MSceneSearch$new(
+    session = NULL,
+    dataset = NULL,
+    results = tibble::tibble(),
+    total_hits = 0
+  )
+
+  expect_false("scene_list" %in% names(search))
 })
 
 test_that("a scene list from a search knows its dataset without a lookup", {
@@ -24,39 +40,19 @@ test_that("a scene list from a search knows its dataset without a lookup", {
   expect_output(print(scenes), "landsat_ot_c2_l2")
 })
 
-test_that("a search reuses one registration across calls", {
+test_that("products reuses one registration across calls", {
   skip_if_no_m2m()
 
   found <- test_session()$
     dataset("landsat_ot_c2_l2")$
     search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)
 
-  # Repeated $scene_list()/$products() must not leave a trail of identical
-  # scene lists on the server.
-  first <- found$scene_list()
-  expect_identical(found$scene_list()$list_id, first$list_id)
-
   found$products()
+  first <- registered_list(found)
   found$products()
-  expect_identical(found$scene_list()$list_id, first$list_id)
+  expect_identical(registered_list(found)$list_id, first$list_id)
 
-  on.exit(try(found$scene_list()$remove(), silent = TRUE), add = TRUE)
-})
-
-test_that("an explicit list_id registers separately from the reused one", {
-  skip_if_no_m2m()
-
-  found <- test_session()$
-    dataset("landsat_ot_c2_l2")$
-    search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)
-
-  reused <- found$scene_list()
-  explicit <- found$scene_list(list_id = "usgsm2m_test_explicit_id")
-  on.exit(try(explicit$remove(), silent = TRUE), add = TRUE)
-  on.exit(try(reused$remove(), silent = TRUE), add = TRUE)
-
-  expect_equal(explicit$list_id, "usgsm2m_test_explicit_id")
-  expect_identical(found$scene_list()$list_id, reused$list_id)
+  on.exit(try(first$remove(), silent = TRUE), add = TRUE)
 })
 
 test_that("a removed list is registered again rather than reused", {
@@ -66,13 +62,15 @@ test_that("a removed list is registered again rather than reused", {
     dataset("landsat_ot_c2_l2")$
     search(temporal = filter_temporal("2020-07-01", "2020-07-31"), max_results = 2)
 
-  first <- found$scene_list()
+  found$products()
+  first <- registered_list(found)
   expect_false(first$removed)
 
   first$remove()
   expect_true(first$removed)
 
-  second <- found$scene_list()
+  found$products()
+  second <- registered_list(found)
   on.exit(try(second$remove(), silent = TRUE), add = TRUE)
 
   expect_false(identical(second$list_id, first$list_id))
@@ -88,12 +86,15 @@ test_that("a filtered search registers its own list", {
 
   subset <- found$filter(dplyr::row_number() == 1)
 
-  # a narrowed search is a different set of scenes and must not share the
-  # parent's registration
-  expect_false(identical(subset$scene_list()$list_id, found$scene_list()$list_id))
+  found$products()
+  subset$products()
+  found_list <- registered_list(found)
+  subset_list <- registered_list(subset)
 
-  on.exit(try(found$scene_list()$remove(), silent = TRUE), add = TRUE)
-  on.exit(try(subset$scene_list()$remove(), silent = TRUE), add = TRUE)
+  expect_false(identical(subset_list$list_id, found_list$list_id))
+
+  on.exit(try(found_list$remove(), silent = TRUE), add = TRUE)
+  on.exit(try(subset_list$remove(), silent = TRUE), add = TRUE)
 })
 
 test_that("reattaching by id resolves the dataset from the list summary", {

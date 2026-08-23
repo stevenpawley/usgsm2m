@@ -24,7 +24,6 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.}
     \item \href{#method-M2MSceneSearch-dataset}{\code{M2MSceneSearch$dataset()}}
     \item \href{#method-M2MSceneSearch-filter}{\code{M2MSceneSearch$filter()}}
     \item \href{#method-M2MSceneSearch-combine}{\code{M2MSceneSearch$combine()}}
-    \item \href{#method-M2MSceneSearch-scene_list}{\code{M2MSceneSearch$scene_list()}}
     \item \href{#method-M2MSceneSearch-products}{\code{M2MSceneSearch$products()}}
     \item \href{#method-M2MSceneSearch-print}{\code{M2MSceneSearch$print()}}
     \item \href{#method-M2MSceneSearch-clone}{\code{M2MSceneSearch$clone()}}
@@ -114,36 +113,6 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.}
   }
   \subsection{Returns}{
     A new [M2MSceneSearch] holding every scene.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-M2MSceneSearch-scene_list"></a>}}
-\if{latex}{\out{\hypertarget{method-M2MSceneSearch-scene_list}{}}}
-\subsection{\code{M2MSceneSearch$scene_list()}}{
-  Register these scenes as a scene list on the M2M server.
-  `$products()` does this for you, so you only need it directly if you
-  want the list for its own sake (e.g. bulk metadata).
-
-  The registration is reused: calling this again, or calling
-  `$products()` more than once, returns the same list rather than
-  registering the scenes a second time. Passing an explicit `list_id`
-  always registers under that id, and does not disturb the reused one.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{M2MSceneSearch$scene_list(list_id = NULL)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{list_id}}{Optional identifier. A unique one is generated if
-omitted.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    An [M2MSceneList] object.
   }
 }
 

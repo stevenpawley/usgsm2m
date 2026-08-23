@@ -94,53 +94,6 @@ M2MSceneSearch <- R6::R6Class(
       )
     },
 
-    #' @description Register these scenes as a scene list on the M2M server.
-    #'   `$products()` does this for you, so you only need it directly if you
-    #'   want the list for its own sake (e.g. bulk metadata).
-    #'
-    #'   The registration is reused: calling this again, or calling
-    #'   `$products()` more than once, returns the same list rather than
-    #'   registering the scenes a second time. Passing an explicit `list_id`
-    #'   always registers under that id, and does not disturb the reused one.
-    #' @param list_id Optional identifier. A unique one is generated if
-    #'   omitted.
-    #' @return An [M2MSceneList] object.
-    scene_list = function(list_id = NULL) {
-      if (nrow(self$scenes) == 0) {
-        stop("No scenes to add to a scene list")
-      }
-
-      # Reuse the registration for this search unless the caller names an id,
-      # so repeated $products() calls do not leave a trail of identical scene
-      # lists on the server. A list the caller has deleted is re-registered.
-      reusable <- is.null(list_id)
-
-      if (reusable && !is.null(private$scene_list_) && !private$scene_list_$removed) {
-        return(private$scene_list_)
-      }
-
-      list_id <- list_id %||% m2m_new_list_id()
-
-      api_scene_list_add(
-        private$session_$ers_session(),
-        dataset_name = private$dataset_$alias(),
-        scenes = self$scenes,
-        list_id = list_id
-      )
-
-      created <- M2MSceneList$new(
-        session = private$session_,
-        list_id = list_id,
-        dataset_name = private$dataset_$alias()
-      )
-
-      if (reusable) {
-        private$scene_list_ <- created
-      }
-
-      created
-    },
-
     #' @description Discover the products (bands and related files) available
     #'   for these scenes. This registers a scene list server-side first,
     #'   which the M2M API requires before download options can be listed.
@@ -148,7 +101,7 @@ M2MSceneSearch <- R6::R6Class(
     #'   individual bands. `TRUE` by default.
     #' @return An [M2MDownloadOptions] object.
     products = function(band_group = TRUE) {
-      self$scene_list()$products(band_group = band_group)
+      private$register_scene_list()$products(band_group = band_group)
     },
 
     #' @description Print a summary of the search results.
@@ -162,7 +115,7 @@ M2MSceneSearch <- R6::R6Class(
         sep = ""
       )
       if (nrow(self$scenes) > 0) {
-        m2m_print_next("$products()", "$filter(...)", "$scene_list()")
+        m2m_print_next("$products()", "$filter(...)")
       }
       invisible(self)
     }
@@ -170,6 +123,33 @@ M2MSceneSearch <- R6::R6Class(
   private = list(
     session_ = NULL,
     dataset_ = NULL,
+
+    # Register the scenes under the server-side list required by downstream
+    # endpoints. Reuse it until it is explicitly removed or the search changes.
+    register_scene_list = function() {
+      if (nrow(self$scenes) == 0) {
+        stop("No scenes to add to a scene list")
+      }
+
+      if (!is.null(private$scene_list_) && !private$scene_list_$removed) {
+        return(private$scene_list_)
+      }
+
+      list_id <- m2m_new_list_id()
+
+      api_scene_list_add(
+        private$session_$ers_session(),
+        dataset_name = private$dataset_$alias(),
+        scenes = self$scenes,
+        list_id = list_id
+      )
+
+      private$scene_list_ <- M2MSceneList$new(
+        session = private$session_,
+        list_id = list_id,
+        dataset_name = private$dataset_$alias()
+      )
+    },
 
     # The scene list registered for this search, reused across $products()
     # calls. Deliberately not carried over by $filter(): a narrowed search is
@@ -191,8 +171,8 @@ M2MSceneSearch <- R6::R6Class(
 #' one call rather than one call per scene, and `$summary()` reports the set's
 #' combined extent.
 #'
-#' Get one with `M2MSceneSearch$scene_list()`, or reattach to an existing
-#' list with `M2MSession$scene_list()`. Not created directly.
+#' Reattach to an existing list with `M2MSession$scene_list()`. Searches create
+#' the lists required for `$products()` internally. Not created directly.
 #'
 #' @export
 M2MSceneList <- R6::R6Class(
@@ -211,8 +191,8 @@ M2MSceneList <- R6::R6Class(
     #'   expire on their own, which this does not track.
     removed = FALSE,
 
-    #' @description Attach to a scene list. Use `M2MSceneSearch$scene_list()`
-    #'   or `M2MSession$scene_list()` instead.
+    #' @description Attach to a scene list. Use `M2MSession$scene_list()`
+    #'   instead.
     #' @param session The parent [M2MSession].
     #' @param list_id The scene list identifier.
     #' @param dataset_name The dataset alias the list belongs to, or `NA` if

@@ -14,8 +14,8 @@ itself is what you want - `$metadata()` fetches metadata for every scene in
 one call rather than one call per scene, and `$summary()` reports the set's
 combined extent.
 
-Get one with `M2MSceneSearch$scene_list()`, or reattach to an existing
-list with `M2MSession$scene_list()`. Not created directly.
+Reattach to an existing list with `M2MSession$scene_list()`. Searches create
+the lists required for `$products()` internally. Not created directly.
 }
 \section{Public fields}{
   \if{html}{\out{<div class="r6-fields">}}
@@ -50,8 +50,8 @@ expire on their own, which this does not track.}
 \if{html}{\out{<a id="method-M2MSceneList-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-M2MSceneList-initialize}{}}}
 \subsection{\code{M2MSceneList$new()}}{
-  Attach to a scene list. Use `M2MSceneSearch$scene_list()`
-  or `M2MSession$scene_list()` instead.
+  Attach to a scene list. Use `M2MSession$scene_list()`
+  instead.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{M2MSceneList$new(session, list_id, dataset_name = NA_character_)}

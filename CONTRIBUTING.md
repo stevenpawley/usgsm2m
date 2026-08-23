@@ -64,7 +64,7 @@ create R6 objects.
 | `api_dataset_filters()` | `dataset-filters` | `M2MDataset$filters()` |
 | `api_scene_search()` | `scene-search` | `M2MDataset$search()` |
 | `api_scene_search_secondary()` | `scene-search-secondary` | `M2MDataset$related_scenes()` |
-| `api_scene_list_add()` | `scene-list-add` | `M2MSceneSearch$scene_list()` |
+| `api_scene_list_add()` | `scene-list-add` | Internal to `M2MSceneSearch$products()` |
 | `api_scene_list_get()` | `scene-list-get` | `M2MSceneList$scenes()` |
 | `api_scene_list_summary()` | `scene-list-summary` | `M2MSceneList$summary()` |
 | `api_scene_list_remove()` | `scene-list-remove` | `M2MSceneList$remove()` |
@@ -75,7 +75,6 @@ create R6 objects.
 | `api_download_queue()` | `download-retrieve` | `M2MDownloadQueue$refresh()` |
 | `api_download_complete_proxied()` | `download-complete-proxied` | `M2MDownloadQueue$retrieve()` |
 | `api_download_labels()` | `download-labels` | `M2MSession$download_labels()` |
-| `api_download_summary()` | `download-summary` | `M2MDownloadQueue$summary()` |
 | `api_download_order_load()` | `download-order-load` | `M2MDownloadQueue$prepare()` |
 | `api_download_eula()` | `download-eula` | `M2MSession$eula()` |
 | `api_download_remove_order()` | `download-order-remove` | `M2MDownloadQueue$cancel()` |
@@ -86,9 +85,8 @@ from the API rather than representing an M2M JSON endpoint.
 
 ## M2M behavior worth knowing
 
-- Scene products and bulk metadata require a server-side scene list. A search
-  creates one lazily through `$scene_list()`, and repeated `$products()` calls
-  reuse it.
+- Scene products require a server-side scene list. A search creates one
+  privately when `$products()` is called, and repeated calls reuse it.
 - `download-options` can repeat the same secondary file under several product
   entries, so `coerce_products()` retains nested files and the selection layer
   de-duplicates them before requesting downloads.

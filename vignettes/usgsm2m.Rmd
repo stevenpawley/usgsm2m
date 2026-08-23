@@ -118,7 +118,7 @@ found
 #> <M2MSceneSearch>
 #>   Dataset: landsat_ot_c2_l2
 #>   Scenes:  3 of 3 total hits
-#>   Next:    $products()  |  $filter(...)  |  $scene_list()
+#>   Next:    $products()  |  $filter(...)
 ```
 
 Results are in the `$scenes` tibble. Searches are paged through exhaustively by
@@ -187,10 +187,9 @@ opts
 #>   Next:    $request(label)  |  $select_bands(...)  |  $bands()
 ```
 
-Behind the scenes this registers a *scene list* on the M2M server, which the
-API requires before it will list download options. The package handles that for
-you; `$scene_list()` exposes it directly if you want it for its own sake, for
-example to pull bulk metadata with `$metadata()`.
+Behind the scenes this registers a private *scene list* on the M2M server,
+which the API requires before it will list download options. The package owns
+that plumbing; the search interface remains focused on scenes and products.
 
 `$bands()` returns one row per downloadable file:
 
@@ -283,8 +282,8 @@ queue
 ```
 
 A file is ready once it has a URL. Some come straight back that way; others
-have to be staged first. Note that the API's own `$available` and `$requested`
-buckets do not map cleanly onto that — proxied downloads sit in `$requested`
+have to be staged first. The API's internal available and requested buckets do
+not map cleanly onto that — proxied downloads can be in the requested bucket
 but already carry a working URL — so use `$ready()` and `$pending()`.
 `$is_ready()` tells you whether anything is still staging, and `$refresh()`
 re-polls:

@@ -22,9 +22,15 @@ fake_queue <- function(available = dplyr::tibble(), requested = dplyr::tibble(),
   q <- M2MDownloadQueue$new(
     session = NULL, label = "test", available = available, n_preparing = queue_size
   )
-  q$requested <- requested
+  q$.__enclos_env__$private$requested_ <- requested
   q
 }
+
+test_that("raw API queue state is private", {
+  q <- fake_queue()
+
+  expect_false(any(c("available", "requested", "queue_size") %in% names(q)))
+})
 
 test_that("rows with a URL count as ready wherever the API listed them", {
   q <- fake_queue(requested = queue_rows("https://landsatlook.usgs.gov/a?requestSignature=x"))

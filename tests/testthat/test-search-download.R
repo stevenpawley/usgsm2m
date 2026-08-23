@@ -92,16 +92,16 @@ test_that("request() refuses an empty selection", {
   expect_error(empty$request(label = "test"), "No products selected")
 })
 
-test_that("scene_list exposes metadata and can be removed", {
+test_that("products registers its required scene list privately", {
   skip_if_no_m2m()
 
-  scenes <- search_fixture()$filter(dplyr::row_number() == 1)$scene_list()
+  search <- search_fixture()$filter(dplyr::row_number() == 1)
+  products <- search$products()
+  scene_list <- search$.__enclos_env__$private$scene_list_
+  on.exit(try(scene_list$remove(), silent = TRUE), add = TRUE)
 
-  expect_s3_class(scenes, "M2MSceneList")
-  expect_type(scenes$list_id, "character")
-  expect_s3_class(scenes$metadata(), "tbl_df")
-
-  expect_silent(scenes$remove())
+  expect_s3_class(products, "M2MDownloadOptions")
+  expect_false("scene_list" %in% names(search))
 })
 
 test_that("download_queue reconnects to a label and reports readiness", {
@@ -110,9 +110,8 @@ test_that("download_queue reconnects to a label and reports readiness", {
   queue <- test_session()$download_queue("nonexistent-label-xyz")
 
   expect_s3_class(queue, "M2MDownloadQueue")
-  expect_s3_class(queue$available, "tbl_df")
-  expect_s3_class(queue$requested, "tbl_df")
-  expect_equal(queue$queue_size, 0)
+  expect_s3_class(queue$ready(), "tbl_df")
+  expect_s3_class(queue$pending(), "tbl_df")
   expect_true(queue$is_ready())
   expect_error(queue$retrieve(tempdir()), "No downloads are available")
 })

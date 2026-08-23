@@ -175,46 +175,6 @@ api_download_labels <- function(session, download_application = NULL) {
 }
 
 
-# Summarize an order by dataset (download-summary endpoint).
-#
-# downloadApplication is required by the API - omitting it returns
-# INPUT_PARAMETER_REQUIRED - and must match the application the downloads were
-# requested under for the counts to be populated.
-api_download_summary <- function(
-    session,
-    label,
-    download_application = "M2M",
-    send_email = FALSE) {
-  if (is.null(label)) {
-    stop("label is required")
-  }
-
-  if (is.null(download_application)) {
-    stop("download_application is required")
-  }
-
-  resp <- m2m_request(
-    session,
-    "download-summary",
-    list(
-      downloadApplication = download_application,
-      label = label,
-      sendEmail = send_email
-    )
-  )
-
-  summary <- m2m_response_data(resp, "Download summary failed")
-
-  list(
-    label = summary$label %||% label,
-    download_count = summary$downloadCount %||% 0L,
-    scene_count = summary$sceneCount %||% 0L,
-    total_estimated_size = summary$totalEstimatedSize %||% 0L,
-    collections = coerce_records(summary$collections)
-  )
-}
-
-
 # Move an order's scenes into the queue for processing (download-order-load).
 #
 # This mutates server-side state rather than reading it: it is what makes a
