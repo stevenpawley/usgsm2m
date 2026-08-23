@@ -116,7 +116,7 @@
 <span><span class="co">#&gt; &lt;M2MSceneSearch&gt;</span></span>
 <span><span class="co">#&gt;   Dataset: landsat_ot_c2_l2</span></span>
 <span><span class="co">#&gt;   Scenes:  3 of 3 total hits</span></span>
-<span><span class="co">#&gt;   Next:    $products()  |  $filter(...)  |  $scene_list()</span></span></code></pre></div>
+<span><span class="co">#&gt;   Next:    $products()  |  $filter(...)</span></span></code></pre></div>
 <p>All results are retrieved by paging automatically; pass <code>max_results</code> to cap this. <code>$total_hits</code> reports what the API matched, so you can tell a capped result set from a complete one.</p>
 <p>Dataset-specific fields can be filtered too. <code>$filters()</code> lists the available fields and their ids, which feed into the <code>filter_metadata_*()</code> builders:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -159,7 +159,7 @@
 <span>  <span class="fu">request</span><span class="op">(</span>label <span class="op">=</span> <span class="st">"bundles"</span><span class="op">)</span></span></code></pre></div>
 <p>Products are matched <strong>exactly</strong>, against <code>productName</code> or <code>productCode</code>, so a value copied out of that listing selects what you copied. For looser matching chain <code>$filter()</code>, which takes any expression: <code>$select_products()$filter(grepl("Bundle", productName))</code>.</p>
 <p><code>$selected()</code> shows exactly what <code>$request()</code> will queue, either way. A value that matches nothing warns and lists what was available, rather than quietly selecting an empty set.</p>
-<p>Files the distribution system cannot serve immediately are prepared in the background. When <code>$is_ready()</code> is <code>FALSE</code>, poll with <code>$refresh()</code> — it adds newly ready files to <code>$available</code> in place:</p>
+<p>Files the distribution system cannot serve immediately are prepared in the background. When <code>$is_ready()</code> is <code>FALSE</code>, poll with <code>$refresh()</code> to update the queue’s internal state:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span>

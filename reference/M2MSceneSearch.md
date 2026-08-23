@@ -26,8 +26,6 @@ the bridge to discovering downloadable products. Not created directly.
 
 - [`M2MSceneSearch$combine()`](#method-M2MSceneSearch-combine)
 
-- [`M2MSceneSearch$scene_list()`](#method-M2MSceneSearch-scene_list)
-
 - [`M2MSceneSearch$products()`](#method-M2MSceneSearch-products)
 
 - [`M2MSceneSearch$print()`](#method-M2MSceneSearch-print)
@@ -121,33 +119,6 @@ dataset, since a set of products is discovered per dataset.
 #### Returns
 
 A new \[M2MSceneSearch\] holding every scene.
-
-------------------------------------------------------------------------
-
-### `M2MSceneSearch$scene_list()`
-
-Register these scenes as a scene list on the M2M server.
-\`\$products()\` does this for you, so you only need it directly if you
-want the list for its own sake (e.g. bulk metadata).
-
-The registration is reused: calling this again, or calling
-\`\$products()\` more than once, returns the same list rather than
-registering the scenes a second time. Passing an explicit \`list_id\`
-always registers under that id, and does not disturb the reused one.
-
-#### Usage
-
-    M2MSceneSearch$scene_list(list_id = NULL)
-
-#### Arguments
-
-- `list_id`:
-
-  Optional identifier. A unique one is generated if omitted.
-
-#### Returns
-
-An \[M2MSceneList\] object.
 
 ------------------------------------------------------------------------
 

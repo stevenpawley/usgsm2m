@@ -10,18 +10,6 @@ download and which the distribution system is still preparing.
 
   The label identifying this order.
 
-- `available`:
-
-  A tibble of files ready to download, with URLs.
-
-- `requested`:
-
-  A tibble of files still being prepared.
-
-- `queue_size`:
-
-  Number of items the API still has queued.
-
 ## Methods
 
 ### Public methods
@@ -37,8 +25,6 @@ download and which the distribution system is still preparing.
 - [`M2MDownloadQueue$is_ready()`](#method-M2MDownloadQueue-is_ready)
 
 - [`M2MDownloadQueue$retrieve()`](#method-M2MDownloadQueue-retrieve)
-
-- [`M2MDownloadQueue$summary()`](#method-M2MDownloadQueue-summary)
 
 - [`M2MDownloadQueue$prepare()`](#method-M2MDownloadQueue-prepare)
 
@@ -87,8 +73,8 @@ Re-poll the M2M queue for this label, picking up files that have
 finished preparing since the last check.
 
 Unlike the other methods here, this updates the object in place rather
-than returning a new one - newly ready files are added to
-\`\$available\` and \`\$requested\`/\`\$queue_size\` are replaced.
+than returning a new one, because it reflects changing server-side queue
+state.
 
 #### Usage
 
@@ -102,13 +88,8 @@ The queue, invisibly.
 
 ### `M2MDownloadQueue$ready()`
 
-The files that can be downloaded now, from either \`\$available\` or
-\`\$requested\`.
-
-Readiness is a matter of having a URL, not of which bucket the API put a
-row in: proxied downloads are listed under \`\$requested\` but carry a
-working URL, because they are served by another USGS host rather than
-staged by the distribution system.
+The files that can be downloaded now. Readiness is based on having a
+URL, regardless of which internal API bucket supplied it.
 
 #### Usage
 
@@ -181,33 +162,6 @@ indefinitely.
 A tibble with one row per file: \`entityId\`, \`downloadId\`, \`url\`,
 \`path\`, \`size\` and \`status\`. A \`status\` of \`"expired"\` means
 the signed URL is no longer valid - \`\$refresh()\` and retry.
-
-------------------------------------------------------------------------
-
-### `M2MDownloadQueue$summary()`
-
-Summarize this order by dataset, via the \`download-summary\` endpoint.
-
-#### Usage
-
-    M2MDownloadQueue$summary(download_application = "M2M", send_email = FALSE)
-
-#### Arguments
-
-- `download_application`:
-
-  The application the downloads were requested under. Required by the
-  API; the counts come back as zero if it does not match the one used at
-  request time.
-
-- `send_email`:
-
-  Whether the API should also email the summary.
-
-#### Returns
-
-A list with \`label\`, \`download_count\`, \`scene_count\`,
-\`total_estimated_size\` and a \`collections\` tibble.
 
 ------------------------------------------------------------------------
 

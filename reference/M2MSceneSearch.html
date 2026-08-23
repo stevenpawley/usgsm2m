@@ -68,7 +68,6 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.</p></dd>
 <li><p><a href="#method-M2MSceneSearch-dataset"><code>M2MSceneSearch$dataset()</code></a></p></li>
 <li><p><a href="#method-M2MSceneSearch-filter"><code>M2MSceneSearch$filter()</code></a></p></li>
 <li><p><a href="#method-M2MSceneSearch-combine"><code>M2MSceneSearch$combine()</code></a></p></li>
-<li><p><a href="#method-M2MSceneSearch-scene_list"><code>M2MSceneSearch$scene_list()</code></a></p></li>
 <li><p><a href="#method-M2MSceneSearch-products"><code>M2MSceneSearch$products()</code></a></p></li>
 <li><p><a href="#method-M2MSceneSearch-print"><code>M2MSceneSearch$print()</code></a></p></li>
 <li><p><a href="#method-M2MSceneSearch-clone"><code>M2MSceneSearch$clone()</code></a></p></li>
@@ -152,41 +151,15 @@ matching, which exceeds `nrow(scenes)` when `max_results` was set.</p></dd>
 
 </div>
 
-<p></p><hr><a id="method-M2MSceneSearch-scene_list"></a><div class="section">
-<h3 id="m-mscenesearch-scene-list-"><code>M2MSceneSearch$scene_list()</code><a class="anchor" aria-label="anchor" href="#m-mscenesearch-scene-list-"></a></h3>
-<p>Register these scenes as a scene list on the M2M server.
-  `$products()` does this for you, so you only need it directly if you
-  want the list for its own sake (e.g. bulk metadata).</p>
-<p>The registration is reused: calling this again, or calling
-  `$products()` more than once, returns the same list rather than
-  registering the scenes a second time. Passing an explicit `list_id`
-  always registers under that id, and does not disturb the reused one.</p><div class="section">
-<h4 id="usage-4">Usage<a class="anchor" aria-label="anchor" href="#usage-4"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSceneSearch</span><span class="op">$</span><span class="fu">scene_list</span><span class="op">(</span>list_id <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div><p></p><div class="section">
-<h4 id="arguments-3">Arguments<a class="anchor" aria-label="anchor" href="#arguments-3"></a></h4>
-<p></p><div class="arguments"><dl><dt><code>list_id</code></dt>
-<dd><p>Optional identifier. A unique one is generated if
-omitted.</p></dd>
-
-
-</dl><p></p></div>
-</div><p></p><div class="section">
-<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
-<p>An [M2MSceneList] object.</p>
-</div>
-
-</div>
-
 <p></p><hr><a id="method-M2MSceneSearch-products"></a><div class="section">
 <h3 id="m-mscenesearch-products-"><code>M2MSceneSearch$products()</code><a class="anchor" aria-label="anchor" href="#m-mscenesearch-products-"></a></h3>
 <p>Discover the products (bands and related files) available
   for these scenes. This registers a scene list server-side first,
   which the M2M API requires before download options can be listed.</p><div class="section">
-<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
+<h4 id="usage-4">Usage<a class="anchor" aria-label="anchor" href="#usage-4"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSceneSearch</span><span class="op">$</span><span class="fu">products</span><span class="op">(</span>band_group <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
+<h4 id="arguments-3">Arguments<a class="anchor" aria-label="anchor" href="#arguments-3"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>band_group</code></dt>
 <dd><p>Whether to include secondary file groups, i.e. the
 individual bands. `TRUE` by default.</p></dd>
@@ -194,7 +167,7 @@ individual bands. `TRUE` by default.</p></dd>
 
 </dl><p></p></div>
 </div><p></p><div class="section">
-<h4 id="returns-4">Returns<a class="anchor" aria-label="anchor" href="#returns-4"></a></h4>
+<h4 id="returns-3">Returns<a class="anchor" aria-label="anchor" href="#returns-3"></a></h4>
 <p>An [M2MDownloadOptions] object.</p>
 </div>
 
@@ -203,10 +176,10 @@ individual bands. `TRUE` by default.</p></dd>
 <p></p><hr><a id="method-M2MSceneSearch-print"></a><div class="section">
 <h3 id="m-mscenesearch-print-"><code>M2MSceneSearch$print()</code><a class="anchor" aria-label="anchor" href="#m-mscenesearch-print-"></a></h3>
 <p>Print a summary of the search results.</p><div class="section">
-<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
+<h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSceneSearch</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
+<h4 id="arguments-4">Arguments<a class="anchor" aria-label="anchor" href="#arguments-4"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>Ignored.</p></dd>
 
@@ -219,10 +192,10 @@ individual bands. `TRUE` by default.</p></dd>
 <p></p><hr><a id="method-M2MSceneSearch-clone"></a><div class="section">
 <h3 id="m-mscenesearch-clone-"><code>M2MSceneSearch$clone()</code><a class="anchor" aria-label="anchor" href="#m-mscenesearch-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">M2MSceneSearch</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div><p></p><div class="section">
-<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
 

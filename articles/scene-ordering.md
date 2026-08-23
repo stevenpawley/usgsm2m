@@ -58,10 +58,10 @@ Each endpoint maps onto one method:
 | API endpoint | Package | Needs | Gives you |
 |----|----|----|----|
 | `scene-search` | `$search()` | filters | `M2MSceneSearch` — `$scenes`, `$total_hits` |
-| `scene-list-add` | `$scene_list()` | scenes, dataset | `M2MSceneList` — holds the `listId` |
+| `scene-list-add` | internal to `$products()` | scenes, dataset | a temporary server-side `listId` |
 | `download-options` | `$products()` | `listId`, dataset | `M2MDownloadOptions` — `$bands()`, `$scene_products()` |
 | `download-request` | `$request(label)` | entityId/productId pairs | `M2MDownloadQueue` — `$ready()`, `$pending()` |
-| `download-retrieve` | `$refresh()` | `label` | updates `$available` in place |
+| `download-retrieve` | `$refresh()` | `label` | updates the queue in place |
 | (plain HTTP GET) | `$retrieve(dir)` | URLs | tibble of `path` and `status` per file |
 
 Two of these you will rarely call yourself. `$products()` performs
@@ -121,11 +121,10 @@ object already knows both the scenes and the dataset:
 found$products()
 ```
 
-Internally it is still the same two calls — `$products()` asks
-`$scene_list()` to register, then requests download options against the
-resulting id. The identifier is generated (a timestamp plus six random
-characters) so it cannot collide, and the dataset name is carried on the
-object rather than retyped, so it cannot disagree.
+Internally it is still the same two calls: `$products()` privately
+registers the scenes, then requests download options against the
+resulting id. The identifier is generated automatically, and the dataset
+name is carried on the search object rather than retyped.
 
 ### One registration per search
 
@@ -136,47 +135,41 @@ again:
 
 found$products()
 found$products()
-found$scene_list()$list_id   # all three refer to one registration
 ```
 
-A narrowed search is a different set of scenes, so it gets its own:
+A narrowed search is a different set of scenes, so its `$products()`
+call gets its own registration:
 
 ``` r
 
-found$filter(cloudCover < 10)$scene_list()   # separate list
+found$filter(cloudCover < 10)$products()
 ```
 
-Passing an explicit `list_id` always registers under that name and
-leaves the reused one alone, and a list you have deleted with
-`$remove()` is registered afresh next time rather than being handed back
-dead.
+The registration is deliberately private because it is API plumbing
+rather than a workflow choice. Temporary lists persist until the server
+expires them.
 
-Note that nothing deletes these lists automatically — they persist until
-they expire, or until you call `$remove()`.
+### Reattaching to an existing list
 
-### Working with the list directly
-
-`M2MSceneList` is what you get back when scenes are registered.
-`$products()` creates one and uses it without showing you, so most of
-the time you never need it. `$scene_list()` gives you the same object to
-hold onto:
+`M2MSceneList` remains available for an existing server-side list whose
+id you already know. This is an advanced recovery/interoperability path;
+searches do not expose the temporary lists they create:
 
 ``` r
 
-found <- sess$dataset("landsat_ot_c2_l2")$search(
-  temporal = filter_temporal("2020-07-01", "2020-07-31"),
-  max_results = 4
+scenes <- sess$scene_list(
+  "an_existing_list_id",
+  dataset_name = "landsat_ot_c2_l2"
 )
-
-scenes <- found$scene_list()
 scenes
 #> <M2MSceneList>
-#>   List id: usgsm2m_20260821150915_vbbem6
+#>   List id: an_existing_list_id
 #>   Dataset: landsat_ot_c2_l2
 #>   Next:    $products()  |  $metadata()  |  $summary()
 ```
 
-There are three reasons to reach for it.
+An attached list can expose bulk metadata and describe its server-side
+set.
 
 **Bulk metadata.** `$metadata()` fetches the full metadata for every
 scene in the list in a single call. Done scene by scene that would be
@@ -198,23 +191,8 @@ scenes$summary()
 scenes$scenes()
 ```
 
-**Naming a set to come back to.** The identifier is generated for you,
-but you can supply your own and reattach to it later in the same
-session:
-
-``` r
-
-found$scene_list(list_id = "july_2020_candidates")
-sess$scene_list("july_2020_candidates")
-```
-
-Bear in mind that lists expire (see below), so this is useful within a
-working session rather than across days. To gather scenes from several
-searches, use `$combine()` rather than reusing an identifier — see
-below.
-
-`$remove()` deletes the list from the server when you are finished with
-it.
+To gather scenes from several searches, use `$combine()` before
+`$products()`; the package will register the combined set privately.
 
 ### Combining several searches into one set
 
@@ -235,7 +213,7 @@ summer
 #> <M2MSceneSearch>
 #>   Dataset: landsat_ot_c2_l2
 #>   Scenes:  4 of 4 total hits
-#>   Next:    $products()  |  $filter(...)  |  $scene_list()
+#>   Next:    $products()  |  $filter(...)
 
 summer$products()
 ```
@@ -323,17 +301,18 @@ that they exist.
 `$request()` places an order under a label. A file is ready when it has
 a URL, and how it gets one depends on how USGS serves that product:
 
-- **Served by M2M itself** — appears in `$available` with a URL.
-- **Proxied** — appears in `$requested`, but *also* with a URL. These
-  are hosted elsewhere (`landsatlook.usgs.gov`, for instance) on a
-  signed URL, so M2M hands you the link and steps out of the way. They
-  are immediately downloadable.
-- **Still staging** — appears in `$requested` with no URL yet.
+- **Served by M2M itself** — appears in the API’s available bucket with
+  a URL.
+- **Proxied** — appears in the API’s requested bucket, but *also* with a
+  URL. These are hosted elsewhere (`landsatlook.usgs.gov`, for instance)
+  on a signed URL, so M2M hands you the link and steps out of the way.
+  They are immediately downloadable.
+- **Still staging** — appears in the requested bucket with no URL yet.
 
 Because the API’s two buckets do not line up with ready-versus-pending,
-use `$ready()` and `$pending()` rather than reading `$available` and
-`$requested` directly. `$is_ready()` is true when nothing is left
-staging, and `$refresh()` re-polls:
+the queue keeps them private and exposes `$ready()` and `$pending()`
+instead. `$is_ready()` is true when nothing is left staging, and
+`$refresh()` re-polls:
 
 ``` r
 
@@ -370,15 +349,14 @@ queue$refresh()
 queue$retrieve("data/landsat")
 ```
 
-`sess$downloads()` lists every individual download across all labels,
-and `queue$summary()` breaks one order down by dataset.
+`sess$downloads()` lists every individual download across all labels.
 
 ## What lives where
 
 | Thing | Identified by | Survives your session? | Created by |
 |----|----|----|----|
 | Session | API token | No — expires when idle | [`m2m_session()`](https://stevenpawley.github.io/usgsm2m/reference/m2m_session.md) |
-| Scene list | `listId` | Usually not — expires when idle | `$scene_list()`, or implicitly by `$products()` |
+| Scene list | `listId` | Usually not — expires when idle | privately by `$products()` |
 | Download order | `label` | Yes | `$request()` |
 | Downloaded files | path on disk | Yes | `$retrieve()` |
 

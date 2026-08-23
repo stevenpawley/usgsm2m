@@ -153,7 +153,7 @@ build them:</p>
 <span><span class="co">#&gt; &lt;M2MSceneSearch&gt;</span></span>
 <span><span class="co">#&gt;   Dataset: landsat_ot_c2_l2</span></span>
 <span><span class="co">#&gt;   Scenes:  3 of 3 total hits</span></span>
-<span><span class="co">#&gt;   Next:    $products()  |  $filter(...)  |  $scene_list()</span></span></code></pre></div>
+<span><span class="co">#&gt;   Next:    $products()  |  $filter(...)</span></span></code></pre></div>
 <p>Results are in the <code>$scenes</code> tibble. Searches are paged
 through exhaustively by default; pass <code>max_results</code> to stop
 early. <code>$total_hits</code> always reports what the API matched
@@ -212,11 +212,10 @@ for the scenes you found:</p>
 <span><span class="co">#&gt;   Scenes:  12</span></span>
 <span><span class="co">#&gt;   Files:   66 selected</span></span>
 <span><span class="co">#&gt;   Next:    $request(label)  |  $select_bands(...)  |  $bands()</span></span></code></pre></div>
-<p>Behind the scenes this registers a <em>scene list</em> on the M2M
-server, which the API requires before it will list download options. The
-package handles that for you; <code>$scene_list()</code> exposes it
-directly if you want it for its own sake, for example to pull bulk
-metadata with <code>$metadata()</code>.</p>
+<p>Behind the scenes this registers a private <em>scene list</em> on the
+M2M server, which the API requires before it will list download options.
+The package owns that plumbing; the search interface remains focused on
+scenes and products.</p>
 <p><code>$bands()</code> returns one row per downloadable file:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">opts</span><span class="op">$</span><span class="fu">bands</span><span class="op">(</span><span class="op">)</span></span>
@@ -300,12 +299,12 @@ the order again later, so give it something meaningful:</p>
 <span><span class="co">#&gt;   Preparing: 0</span></span>
 <span><span class="co">#&gt;   Next:      $retrieve(out_dir)</span></span></code></pre></div>
 <p>A file is ready once it has a URL. Some come straight back that way;
-others have to be staged first. Note that the API’s own
-<code>$available</code> and <code>$requested</code> buckets do not map
-cleanly onto that — proxied downloads sit in <code>$requested</code> but
-already carry a working URL — so use <code>$ready()</code> and
-<code>$pending()</code>. <code>$is_ready()</code> tells you whether
-anything is still staging, and <code>$refresh()</code> re-polls:</p>
+others have to be staged first. The API’s internal available and
+requested buckets do not map cleanly onto that — proxied downloads can
+be in the requested bucket but already carry a working URL — so use
+<code>$ready()</code> and <code>$pending()</code>.
+<code>$is_ready()</code> tells you whether anything is still staging,
+and <code>$refresh()</code> re-polls:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">while</span> <span class="op">(</span><span class="op">!</span><span class="va">queue</span><span class="op">$</span><span class="fu">is_ready</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span>

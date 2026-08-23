@@ -11,8 +11,9 @@ list itself is what you want - \`\$metadata()\` fetches metadata for
 every scene in one call rather than one call per scene, and
 \`\$summary()\` reports the set's combined extent.
 
-Get one with \`M2MSceneSearch\$scene_list()\`, or reattach to an
-existing list with \`M2MSession\$scene_list()\`. Not created directly.
+Reattach to an existing list with \`M2MSession\$scene_list()\`. Searches
+create the lists required for \`\$products()\` internally. Not created
+directly.
 
 ## Public fields
 
@@ -58,8 +59,7 @@ existing list with \`M2MSession\$scene_list()\`. Not created directly.
 
 ### `M2MSceneList$new()`
 
-Attach to a scene list. Use \`M2MSceneSearch\$scene_list()\` or
-\`M2MSession\$scene_list()\` instead.
+Attach to a scene list. Use \`M2MSession\$scene_list()\` instead.
 
 #### Usage
 

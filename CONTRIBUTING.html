@@ -103,7 +103,8 @@ class-* method → api_* endpoint function → m2m_request()
 <td><code>M2MDataset$related_scenes()</code></td>
 </tr><tr><td><code>api_scene_list_add()</code></td>
 <td><code>scene-list-add</code></td>
-<td><code>M2MSceneSearch$scene_list()</code></td>
+<td>Internal to <code>M2MSceneSearch$products()</code>
+</td>
 </tr><tr><td><code>api_scene_list_get()</code></td>
 <td><code>scene-list-get</code></td>
 <td><code>M2MSceneList$scenes()</code></td>
@@ -134,9 +135,6 @@ class-* method → api_* endpoint function → m2m_request()
 </tr><tr><td><code>api_download_labels()</code></td>
 <td><code>download-labels</code></td>
 <td><code>M2MSession$download_labels()</code></td>
-</tr><tr><td><code>api_download_summary()</code></td>
-<td><code>download-summary</code></td>
-<td><code>M2MDownloadQueue$summary()</code></td>
 </tr><tr><td><code>api_download_order_load()</code></td>
 <td><code>download-order-load</code></td>
 <td><code>M2MDownloadQueue$prepare()</code></td>
@@ -155,7 +153,7 @@ class-* method → api_* endpoint function → m2m_request()
 </div>
 <div class="section level2">
 <h2 id="m2m-behavior-worth-knowing">M2M behavior worth knowing<a class="anchor" aria-label="anchor" href="#m2m-behavior-worth-knowing"></a></h2>
-<ul><li>Scene products and bulk metadata require a server-side scene list. A search creates one lazily through <code>$scene_list()</code>, and repeated <code>$products()</code> calls reuse it.</li>
+<ul><li>Scene products require a server-side scene list. A search creates one privately when <code>$products()</code> is called, and repeated calls reuse it.</li>
 <li>
 <code>download-options</code> can repeat the same secondary file under several product entries, so <code>coerce_products()</code> retains nested files and the selection layer de-duplicates them before requesting downloads.</li>
 <li>Scene-search results are paginated. <code>m2m_paginate_scene_search()</code> owns the shared pagination protocol for normal and secondary searches.</li>
