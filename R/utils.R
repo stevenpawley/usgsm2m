@@ -131,3 +131,32 @@ m2m_bind_records <- function(flat) {
 
   tibble::as_tibble(stats::setNames(columns, fields))
 }
+
+
+# Write a response body to disk.
+#
+# A response from req_perform_connection() has not read its body yet, so it is
+# streamed a chunk at a time rather than held in memory - a product bundle can
+# be several gigabytes. A response that already carries its body in memory
+# (nothing to stream) is written in one go.
+m2m_write_body <- function(resp, path, chunk_kb = 1024) {
+  con <- file(path, "wb")
+  on.exit(close(con), add = TRUE)
+
+  if (!inherits(resp$body, "StreamingBody")) {
+    if (httr2::resp_has_body(resp)) {
+      writeBin(httr2::resp_body_raw(resp), con)
+    }
+    return(invisible(path))
+  }
+
+  repeat {
+    chunk <- httr2::resp_stream_raw(resp, kb = chunk_kb)
+    if (length(chunk) == 0) {
+      break
+    }
+    writeBin(chunk, con)
+  }
+
+  invisible(path)
+}

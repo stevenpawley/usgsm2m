@@ -346,6 +346,11 @@ queue$retrieve("data/landsat")
 
 `sess$downloads()` lists every individual download across all labels.
 
+`$retrieve()` leaves alone any file already sitting in the output directory
+under the name the server would give it, so re-running it after an interrupted
+session only fetches what is missing; those files come back with a status of
+`"skipped"`. Pass `overwrite = TRUE` to fetch them again anyway.
+
 ## What lives where
 
 | Thing | Identified by | Survives your session? | Created by |

@@ -337,15 +337,26 @@ M2MDownloadQueue <- R6::R6Class(
     #'   queue lists them under, which for a scene-level product is the scene
     #'   id and carries no extension.
     #'
+    #'   A file already in `out_dir` under that name is left alone unless
+    #'   `overwrite` is `TRUE`, so re-running this after an interrupted order
+    #'   only fetches what is missing. Since the name usually only becomes
+    #'   known once the server has answered, the request is still made for
+    #'   each file, but none of the body is transferred for one that is
+    #'   already there.
+    #'
     #'   Proxied downloads are reported back to the API afterwards, since it
     #'   does not serve them itself and would otherwise leave them in the
-    #'   queue indefinitely.
+    #'   queue indefinitely. Files skipped as already present are reported
+    #'   too - they are on disk, so the order is fulfilled.
     #' @param out_dir Directory to write files into. Created if missing.
     #' @return A tibble with one row per file: `entityId`, `downloadId`,
     #'   `url`, `path`, `size` and `status`. A `status` of `"expired"` means
-    #'   the signed URL is no longer valid - `$refresh()` and retry.
+    #'   the signed URL is no longer valid - `$refresh()` and retry;
+    #'   `"skipped"` means the file was already in `out_dir`.
     #' @param report_proxied Whether to mark proxied downloads complete.
-    retrieve = function(out_dir, report_proxied = TRUE) {
+    #' @param overwrite Whether to download files that are already in
+    #'   `out_dir`, replacing them.
+    retrieve = function(out_dir, report_proxied = TRUE, overwrite = FALSE) {
       ready <- self$ready()
 
       if (nrow(ready) == 0) {
@@ -353,11 +364,16 @@ M2MDownloadQueue <- R6::R6Class(
       }
 
       session <- private$session_$ers_session()
-      results <- api_download_files(session, downloads = ready, out_dir = out_dir)
+      results <- api_download_files(
+        session,
+        downloads = ready,
+        out_dir = out_dir,
+        overwrite = overwrite
+      )
 
       if (report_proxied) {
         proxied <- results[
-          results$status == "downloaded" &
+          results$status %in% c("downloaded", "skipped") &
             !is.na(results$downloadId) &
             results$downloadId %in% private$proxied_ids(),
           ,

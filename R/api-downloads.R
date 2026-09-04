@@ -61,7 +61,12 @@ api_download_queue <- function(session, label = NULL, download_application = NUL
 # Returns one row per file with the downloadId carried through where the queue
 # supplied one, and the size actually written, so proxied downloads can be
 # reported back to the API afterwards.
-api_download_files <- function(session, downloads, out_dir) {
+#
+# With overwrite = FALSE a file already sitting in out_dir under the name the
+# server would give it is left alone. The request is still made, because for
+# most URLs the name is only known once the server has answered, but it is
+# abandoned as soon as the headers arrive and none of the body is transferred.
+api_download_files <- function(session, downloads, out_dir, overwrite = FALSE) {
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE)
   }
@@ -77,12 +82,30 @@ api_download_files <- function(session, downloads, out_dir) {
   results <- purrr::pmap(
     list(downloads$entityId, downloads$url, download_ids),
     function(entityId, url, downloadId) {
-      # The real name is only known once the server has answered, so stream to
-      # a scratch file in the destination directory and rename it afterwards.
-      # Writing it in out_dir keeps the rename on one filesystem, and a failed
-      # transfer leaves nothing behind rather than a file named after the scene
-      # holding an error body.
-      scratch <- tempfile("m2m-", tmpdir = out_dir)
+      result <- function(path, size, status) {
+        tibble::tibble(
+          entityId = entityId,
+          downloadId = downloadId,
+          url = url,
+          path = path,
+          size = size,
+          status = status
+        )
+      }
+
+      kept <- function(path) result(path, file.size(path), "skipped")
+
+      # Some URLs name the file themselves, so an existing copy can be
+      # recognized without contacting the server at all.
+      if (!overwrite) {
+        named <- coerce_url_name(url)
+        if (!is.null(named)) {
+          existing <- file.path(out_dir, named)
+          if (file.exists(existing)) {
+            return(kept(existing))
+          }
+        }
+      }
 
       req <- httr2::request(url) %>%
         httr2::req_retry(max_tries = 5L, backoff = function(x) 30) %>%
@@ -93,43 +116,41 @@ api_download_files <- function(session, downloads, out_dir) {
         req <- httr2::req_headers(req, `X-Auth-Token` = session$api_key)
       }
 
-      resp <- httr2::req_perform(req, path = scratch)
+      # Connect and read the headers, but not yet the body: the real name is
+      # only known once the server has answered, and knowing it before the
+      # transfer starts is what lets an existing file be left alone.
+      resp <- httr2::req_perform_connection(req)
+      on.exit(close(resp), add = TRUE)
+
       status <- httr2::resp_status(resp)
 
-      if (status == 200) {
-        filename <- file.path(
-          out_dir,
-          coerce_download_name(resp, url = url, entityId = entityId)
-        )
-
-        if (file.exists(scratch)) {
-          file.rename(scratch, filename)
-        }
-
-        return(tibble::tibble(
-          entityId = entityId,
-          downloadId = downloadId,
-          url = url,
-          path = filename,
-          size = file.size(filename),
-          status = "downloaded"
-        ))
+      if (status != 200) {
+        # A signed URL that has expired comes back as 403, which is otherwise
+        # an opaque failure.
+        note <- if (status %in% c(401L, 403L)) "expired" else "failed"
+        return(result(NA_character_, NA_real_, note))
       }
 
-      unlink(scratch)
-
-      # A signed URL that has expired comes back as 403, which is otherwise an
-      # opaque failure.
-      note <- if (status %in% c(401L, 403L)) "expired" else "failed"
-
-      tibble::tibble(
-        entityId = entityId,
-        downloadId = downloadId,
-        url = url,
-        path = NA_character_,
-        size = NA_real_,
-        status = note
+      filename <- file.path(
+        out_dir,
+        coerce_download_name(resp, url = url, entityId = entityId)
       )
+
+      if (!overwrite && file.exists(filename)) {
+        return(kept(filename))
+      }
+
+      # Stream to a scratch file in the destination directory and rename it
+      # afterwards. Writing it in out_dir keeps the rename on one filesystem,
+      # and a failed transfer leaves nothing behind rather than a file named
+      # after the scene holding a partial body.
+      scratch <- tempfile("m2m-", tmpdir = out_dir)
+      on.exit(unlink(scratch), add = TRUE)
+
+      m2m_write_body(resp, scratch)
+      file.rename(scratch, filename)
+
+      result(filename, file.size(filename), "downloaded")
     }
   )
 
