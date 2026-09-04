@@ -369,6 +369,23 @@ M2MDownloadQueue <- R6::R6Class(
       results
     },
 
+    #' @description Summarize this order by dataset, via the
+    #'   `download-summary` endpoint.
+    #' @param download_application The application the downloads were
+    #'   requested under. Required by the API; the counts come back as zero
+    #'   if it does not match the one used at request time.
+    #' @param send_email Whether the API should also email the summary.
+    #' @return A list with `label`, `download_count`, `scene_count`,
+    #'   `total_estimated_size` and a `collections` tibble.
+    summary = function(download_application = "M2M", send_email = FALSE) {
+      api_download_summary(
+        private$session_$ers_session(),
+        label = self$label,
+        download_application = download_application,
+        send_email = send_email
+      )
+    },
+
     #' @description Move this order's scenes into the queue for processing,
     #'   via the `download-order-load` endpoint.
     #'

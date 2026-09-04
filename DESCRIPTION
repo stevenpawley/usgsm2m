@@ -18,6 +18,8 @@ Description: The USGS/EROS Machine-to-Machine (M2M) Application Programming
   community-developed interface to the M2M API for use in R.
 License: MIT + file LICENSE
 Encoding: UTF-8
+Depends:
+    R (>= 4.1)
 Imports:
     dplyr,
     httr2,
