@@ -24,6 +24,7 @@ download and which the distribution system is still preparing.
     \item \href{#method-M2MDownloadQueue-pending}{\code{M2MDownloadQueue$pending()}}
     \item \href{#method-M2MDownloadQueue-is_ready}{\code{M2MDownloadQueue$is_ready()}}
     \item \href{#method-M2MDownloadQueue-retrieve}{\code{M2MDownloadQueue$retrieve()}}
+    \item \href{#method-M2MDownloadQueue-summary}{\code{M2MDownloadQueue$summary()}}
     \item \href{#method-M2MDownloadQueue-prepare}{\code{M2MDownloadQueue$prepare()}}
     \item \href{#method-M2MDownloadQueue-remove_items}{\code{M2MDownloadQueue$remove_items()}}
     \item \href{#method-M2MDownloadQueue-cancel}{\code{M2MDownloadQueue$cancel()}}
@@ -152,6 +153,33 @@ download and which the distribution system is still preparing.
     A tibble with one row per file: `entityId`, `downloadId`,
   `url`, `path`, `size` and `status`. A `status` of `"expired"` means
   the signed URL is no longer valid - `$refresh()` and retry.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-M2MDownloadQueue-summary"></a>}}
+\if{latex}{\out{\hypertarget{method-M2MDownloadQueue-summary}{}}}
+\subsection{\code{M2MDownloadQueue$summary()}}{
+  Summarize this order by dataset, via the
+  `download-summary` endpoint.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{M2MDownloadQueue$summary(download_application = "M2M", send_email = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{download_application}}{The application the downloads were
+requested under. Required by the API; the counts come back as zero
+if it does not match the one used at request time.}
+      \item{\code{send_email}}{Whether the API should also email the summary.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list with `label`, `download_count`, `scene_count`,
+  `total_estimated_size` and a `collections` tibble.
   }
 }
 
