@@ -26,6 +26,8 @@ download and which the distribution system is still preparing.
 
 - [`M2MDownloadQueue$retrieve()`](#method-M2MDownloadQueue-retrieve)
 
+- [`M2MDownloadQueue$summary()`](#method-M2MDownloadQueue-summary)
+
 - [`M2MDownloadQueue$prepare()`](#method-M2MDownloadQueue-prepare)
 
 - [`M2MDownloadQueue$remove_items()`](#method-M2MDownloadQueue-remove_items)
@@ -162,6 +164,33 @@ indefinitely.
 A tibble with one row per file: \`entityId\`, \`downloadId\`, \`url\`,
 \`path\`, \`size\` and \`status\`. A \`status\` of \`"expired"\` means
 the signed URL is no longer valid - \`\$refresh()\` and retry.
+
+------------------------------------------------------------------------
+
+### `M2MDownloadQueue$summary()`
+
+Summarize this order by dataset, via the \`download-summary\` endpoint.
+
+#### Usage
+
+    M2MDownloadQueue$summary(download_application = "M2M", send_email = FALSE)
+
+#### Arguments
+
+- `download_application`:
+
+  The application the downloads were requested under. Required by the
+  API; the counts come back as zero if it does not match the one used at
+  request time.
+
+- `send_email`:
+
+  Whether the API should also email the summary.
+
+#### Returns
+
+A list with \`label\`, \`download_count\`, \`scene_count\`,
+\`total_estimated_size\` and a \`collections\` tibble.
 
 ------------------------------------------------------------------------
 
