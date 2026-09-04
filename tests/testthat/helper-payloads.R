@@ -68,20 +68,37 @@ fake_filter_field <- function(id, label, value_list = NULL) {
 
 # One download-options product. `n_files` of 0 gives a product with no
 # secondaryDownloads at all, as browse products have.
-fake_product <- function(entity_id, product_name, n_files = 2, file_ids = NULL) {
+fake_product <- function(entity_id, product_name, n_files = 2, file_ids = NULL,
+                         checksums = NULL) {
   # not paste0("file", seq_len(n_files)): with n_files = 0 that returns "file",
   # a length-1 vector, so the "no secondary downloads" case would silently
   # carry one
   file_ids <- file_ids %||% if (n_files == 0) character() else paste0("file", seq_len(n_files))
 
-  secondary <- lapply(file_ids, function(fid) {
-    list(
+  # `checksums` mirrors how the API reports an optional nested object: a
+  # value per file, NA for a checksum object whose value is null, and NULL
+  # for a file carrying no checksum object at all
+  secondary <- lapply(seq_along(file_ids), function(i) {
+    fid <- file_ids[[i]]
+    record <- list(
       id = fid,
       entityId = paste0(entity_id, "_", fid),
       displayId = paste0(entity_id, "_", fid),
       bulkAvailable = TRUE,
       filesize = 1024L
     )
+
+    if (!is.null(checksums)) {
+      value <- checksums[[i]]
+      if (!is.null(value)) {
+        record$checksum <- list(
+          algorithm = "md5",
+          value = if (is.na(value)) NULL else value
+        )
+      }
+    }
+
+    record
   })
 
   list(

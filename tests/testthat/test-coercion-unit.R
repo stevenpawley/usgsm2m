@@ -151,6 +151,49 @@ test_that("products with and without secondary downloads coexist", {
   expect_gt(nrow(opts$bands()), 0)
 })
 
+test_that("an optional nested field reported unevenly does not block flattening", {
+  # the API omits a file's checksum object for some files and returns one with
+  # a null value for others; jsonify typed the column from whichever it saw
+  # first, so unnesting across scenes failed with "Can't combine
+  # `checksum$value` <character> and `checksum$value` <list>"
+  products <- coerce_products(list(
+    fake_product("E1", "Product Bundle", checksums = list("abc", "def")),
+    fake_product("E2", "Product Bundle", checksums = list("ghi", NA)),
+    fake_product("E3", "Product Bundle", checksums = list("jkl", NULL)),
+    fake_product("E4", "Product Bundle")
+  ))
+
+  bands <- M2MDownloadOptions$new(session = NULL, products = products)$bands()
+
+  expect_equal(nrow(bands), 8)
+  expect_type(bands$checksum_value, "character")
+  expect_equal(
+    bands$checksum_value,
+    c("abc", "def", "ghi", NA, "jkl", NA, NA, NA)
+  )
+})
+
+test_that("nested record fields are hoisted into scalar columns", {
+  records <- coerce_records(list(
+    list(id = "a", checksum = list(algorithm = "md5", value = "x")),
+    list(id = "b")
+  ))
+
+  expect_equal(names(records), c("id", "checksum_algorithm", "checksum_value"))
+  expect_equal(records$checksum_value, c("x", NA))
+})
+
+test_that("array fields stay list columns", {
+  records <- coerce_records(list(
+    list(id = "a", tags = list("one", "two")),
+    list(id = "b")
+  ))
+
+  expect_type(records$tags, "list")
+  expect_equal(records$tags[[1]], list("one", "two"))
+  expect_true(is.na(records$tags[[2]]))
+})
+
 test_that("files repeated across products are counted once", {
   # the API lists a scene's secondaryDownloads under each of its product
   # entries, so flattening without de-duplicating queued every file N times

@@ -61,6 +61,16 @@
 
 ## Bug fixes
 
+* `M2MSceneSearch$products()` no longer fails on large orders with
+  `Can't combine \`secondaryDownloads[[1]]$checksum$value\` <character> and
+  \`secondaryDownloads[[841]]$checksum$value\` <list>`. The API reports a
+  file's optional `checksum` object unevenly - present for most files, with a
+  null value or absent entirely for others - and the column was typed from
+  whichever form appeared first, so the per-scene tables could not be
+  combined. Nested objects in API records are now hoisted into scalar columns
+  named after their path, so `checksum` appears as `checksum_algorithm` and
+  `checksum_value` in `$bands()`, with `NA` where the API gave no value.
+
 * Downloaded files now keep the extension the server gives them, taken from
   the `Content-Disposition` header or the URL served. Scene-level products such
   as a Level-2 Product Bundle were written out named after the scene's

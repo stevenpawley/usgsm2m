@@ -55,12 +55,8 @@ coerce_products <- function(product_list, band_group = TRUE) {
   products <- lapply(product_list, function(product) {
     secondary <- product$secondaryDownloads
 
-    df <- product[names(product) != "secondaryDownloads"] %>%
-      jsonify::to_json() %>%
-      jsonify::from_json()
-
-    meta <- df[!vapply(df, is.null, logical(1))]
-    meta <- dplyr::as_tibble(meta)
+    meta <- m2m_flatten_record(product[names(product) != "secondaryDownloads"])
+    meta <- m2m_bind_records(list(meta))
 
     if (band_group) {
       meta$secondaryDownloads <- list(coerce_records(secondary))

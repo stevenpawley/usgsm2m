@@ -48,10 +48,7 @@ coerce_records <- function(records) {
     return(tibble::tibble())
   }
 
-  records %>%
-    jsonify::to_json() %>%
-    jsonify::from_json() %>%
-    dplyr::as_tibble()
+  m2m_bind_records(lapply(records, m2m_flatten_record))
 }
 
 
@@ -60,4 +57,77 @@ coerce_records <- function(records) {
 m2m_print_next <- function(...) {
   steps <- c(...)
   cat("  Next:    ", paste0(steps, collapse = "  |  "), "\n", sep = "")
+}
+
+
+# Flatten one API record into a named list of scalars.
+#
+# The M2M API returns optional fields inconsistently - a file's `checksum`
+# object carries a null `value` for some files and is absent altogether for
+# others - and a record set mixing the two cannot be row-bound or unnested,
+# which broke `$products()` for any order containing such a scene. Nested
+# objects are therefore hoisted into `parent_child` columns holding plain
+# scalars, so every record has the same shape whatever the API omitted.
+#
+# Anything that is not a single object or scalar - an array of values, or an
+# array of objects such as a nested `secondaryDownloads` - is wrapped so it
+# becomes a list column rather than being spread across columns.
+m2m_flatten_record <- function(record, prefix = NULL) {
+  if (length(record) == 0) {
+    return(list())
+  }
+
+  # a bare value where an object was expected has no fields to become
+  # columns, and silently dropping it would lose the record
+  if (is.null(names(record))) {
+    stop("Cannot coerce an unnamed API record into a table row", call. = FALSE)
+  }
+
+  names(record) <- if (is.null(prefix)) {
+    names(record)
+  } else {
+    paste0(prefix, "_", names(record))
+  }
+
+  flat <- lapply(names(record), function(name) {
+    value <- record[[name]]
+
+    if (length(value) == 0) {
+      return(stats::setNames(list(NA), name))
+    }
+
+    if (is.list(value) && !is.null(names(value))) {
+      return(m2m_flatten_record(value, prefix = name))
+    }
+
+    if (is.list(value) || length(value) > 1) {
+      return(stats::setNames(list(list(value)), name))
+    }
+
+    stats::setNames(list(value), name)
+  })
+
+  unlist(flat, recursive = FALSE)
+}
+
+
+# Row-bind flattened records, filling fields a record did not carry with NA.
+m2m_bind_records <- function(flat) {
+  fields <- unique(unlist(lapply(flat, names), use.names = FALSE))
+
+  columns <- lapply(fields, function(field) {
+    values <- lapply(flat, function(record) {
+      if (is.null(record[[field]])) NA else record[[field]]
+    })
+
+    # a field wrapped by m2m_flatten_record() stays a list column; the NA
+    # standing in for records that lacked it has to be wrapped to match
+    if (any(vapply(values, is.list, logical(1)))) {
+      lapply(values, function(value) if (is.list(value)) value[[1]] else value)
+    } else {
+      unlist(values, use.names = FALSE)
+    }
+  })
+
+  tibble::as_tibble(stats::setNames(columns, fields))
 }
