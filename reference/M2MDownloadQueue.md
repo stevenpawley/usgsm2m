@@ -141,13 +141,20 @@ bundle, the \`.TIF\` of a band - rather than after the \`entityId\` the
 queue lists them under, which for a scene-level product is the scene id
 and carries no extension.
 
+A file already in \`out_dir\` under that name is left alone unless
+\`overwrite\` is \`TRUE\`, so re-running this after an interrupted order
+only fetches what is missing. Since the name usually only becomes known
+once the server has answered, the request is still made for each file,
+but none of the body is transferred for one that is already there.
+
 Proxied downloads are reported back to the API afterwards, since it does
 not serve them itself and would otherwise leave them in the queue
-indefinitely.
+indefinitely. Files skipped as already present are reported too - they
+are on disk, so the order is fulfilled.
 
 #### Usage
 
-    M2MDownloadQueue$retrieve(out_dir, report_proxied = TRUE)
+    M2MDownloadQueue$retrieve(out_dir, report_proxied = TRUE, overwrite = FALSE)
 
 #### Arguments
 
@@ -159,11 +166,17 @@ indefinitely.
 
   Whether to mark proxied downloads complete.
 
+- `overwrite`:
+
+  Whether to download files that are already in \`out_dir\`, replacing
+  them.
+
 #### Returns
 
 A tibble with one row per file: \`entityId\`, \`downloadId\`, \`url\`,
 \`path\`, \`size\` and \`status\`. A \`status\` of \`"expired"\` means
-the signed URL is no longer valid - \`\$refresh()\` and retry.
+the signed URL is no longer valid - \`\$refresh()\` and retry;
+\`"skipped"\` means the file was already in \`out_dir\`.
 
 ------------------------------------------------------------------------
 

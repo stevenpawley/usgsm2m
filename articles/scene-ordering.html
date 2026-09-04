@@ -442,6 +442,11 @@ them, so a large download does not have to finish in one sitting:</p>
 <span><span class="va">queue</span><span class="op">$</span><span class="fu">retrieve</span><span class="op">(</span><span class="st">"data/landsat"</span><span class="op">)</span></span></code></pre></div>
 <p><code>sess$downloads()</code> lists every individual download across
 all labels.</p>
+<p><code>$retrieve()</code> leaves alone any file already sitting in the
+output directory under the name the server would give it, so re-running
+it after an interrupted session only fetches what is missing; those
+files come back with a status of <code>"skipped"</code>. Pass
+<code>overwrite = TRUE</code> to fetch them again anyway.</p>
 </div>
 <div class="section level2">
 <h2 id="what-lives-where">What lives where<a class="anchor" aria-label="anchor" href="#what-lives-where"></a>
